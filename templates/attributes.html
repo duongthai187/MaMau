@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Attributes - Odoo Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">Odoo Product Management</a>
+            <div class="navbar-nav">
+                <a class="nav-link" href="/categories">Categories</a>
+                <a class="nav-link" href="/templates">Templates</a>
+                <a class="nav-link" href="/products">Products</a>
+                <a class="nav-link" href="/serials">Serial Numbers</a>
+                <a class="nav-link active" href="/attributes">Attributes</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-6">
+                <!-- Attributes Section -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5>Product Attributes</h5>
+                        <button class="btn btn-success btn-sm" onclick="showCreateAttributeForm()">Tạo Attribute</button>
+                    </div>
+                    <div class="card-body">
+                        <!-- Form tạo/sửa attribute -->
+                        <div id="attributeForm" class="mb-3" style="display: none;">
+                            <form id="attributeFormData" class="border p-3 rounded bg-light">
+                                <input type="hidden" id="attributeId">
+                                <div class="mb-3">
+                                    <label for="attributeName" class="form-label">Tên Attribute *</label>
+                                    <input type="text" class="form-control" id="attributeName" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="displayType" class="form-label">Loại hiển thị</label>
+                                    <select class="form-control" id="displayType">
+                                        <option value="radio">Radio</option>
+                                        <option value="select">Select</option>
+                                        <option value="color">Color</option>
+                                    </select>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary btn-sm">Lưu</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="hideAttributeForm()">Hủy</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Danh sách attributes -->
+                        <div class="table-responsive">
+                            <table class="table table-striped table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Tên</th>
+                                        <th>Loại</th>
+                                        <th>Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attributesTable">
+                                    <!-- Dữ liệu sẽ được load bằng JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <!-- Attribute Values Section -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5>Attribute Values</h5>
+                        <button class="btn btn-success btn-sm" onclick="showCreateValueForm()" disabled id="createValueBtn">Tạo Value</button>
+                    </div>
+                    <div class="card-body">
+                        <div id="noAttributeSelected" class="text-muted text-center py-4">
+                            Chọn một attribute để xem và quản lý values
+                        </div>
+
+                        <!-- Form tạo/sửa value -->
+                        <div id="valueForm" class="mb-3" style="display: none;">
+                            <form id="valueFormData" class="border p-3 rounded bg-light">
+                                <input type="hidden" id="valueId">
+                                <input type="hidden" id="selectedAttributeId">
+                                <div class="mb-3">
+                                    <label for="valueName" class="form-label">Tên Value *</label>
+                                    <input type="text" class="form-control" id="valueName" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="valueSequence" class="form-label">Thứ tự</label>
+                                    <input type="number" class="form-control" id="valueSequence" value="1">
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary btn-sm">Lưu</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="hideValueForm()">Hủy</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Danh sách values -->
+                        <div id="valuesSection" style="display: none;">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Tên</th>
+                                            <th>Thứ tự</th>
+                                            <th>Hành động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="valuesTable">
+                                        <!-- Dữ liệu sẽ được load bằng JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/attributes.js') }}"></script>
+</body>
+</html>
