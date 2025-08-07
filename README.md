@@ -34,29 +34,45 @@
 ### 1. Yêu cầu hệ thống
 ```bash
 Python 3.8+
-Flask 2.3.3
+pip (Python package manager)
 ```
 
 ### 2. Clone repository
 ```bash
-git clone <repository-url>
-cd BTMH
+git clone https://github.com/duongthai187/MaMau.git
+cd MaMau
 ```
 
 ### 3. Cài đặt dependencies
 ```bash
-pip install flask flask-cors xmlrpc
+pip install -r requirements.txt
 ```
 
-### 4. Cấu hình Odoo connection
-Chỉnh sửa file `config.py`:
-```python
-ODOO_CONFIG = {
-    'url': 'https://your-odoo-server.com',  # Thay đổi URL
-    'db': 'your-database',                  # Thay đổi database name  
-    'username': 'your-username',            # Thay đổi username
-    'password': 'your-password'             # Thay đổi password
-}
+### 4. Cấu hình environment variables
+```bash
+# Copy file template
+cp .env.example .env
+
+# Chỉnh sửa file .env với thông tin Odoo của bạn
+# Windows:
+notepad .env
+
+# Linux/Mac:
+nano .env
+```
+
+Nội dung file `.env`:
+```env
+# Cấu hình kết nối Odoo
+ODOO_URL=https://your-odoo-server.com
+ODOO_DB=your-database-name
+ODOO_USERNAME=your-username
+ODOO_PASSWORD=your-password
+
+# Cấu hình Flask
+FLASK_HOST=0.0.0.0
+FLASK_PORT=5000
+FLASK_DEBUG=True
 ```
 
 ### 5. Chạy ứng dụng
@@ -75,7 +91,11 @@ http://localhost:5000
 BTMH/
 ├── app.py                 # Flask server chính với API routes
 ├── odoo_client.py         # XML-RPC client để kết nối Odoo
-├── config.py             # Cấu hình connection và Flask
+├── config.py             # Cấu hình từ environment variables
+├── requirements.txt      # Python dependencies
+├── .env                  # Environment variables (không commit)
+├── .env.example          # Template cho .env
+├── .gitignore           # Git ignore rules
 ├── README.md             # File hướng dẫn này
 ├── templates/            # HTML templates sử dụng Bootstrap 5
 │   ├── index.html        # Trang chủ với navigation
@@ -218,9 +238,21 @@ Template: "JEWELRY" + Attributes: ["Đỏ", "Lớn"]
 ### Lỗi kết nối Odoo
 ```
 ERROR: Kết nối thất bại
-→ Kiểm tra config.py (URL, database, username, password)
+→ Kiểm tra file .env (ODOO_URL, ODOO_DB, ODOO_USERNAME, ODOO_PASSWORD)
 → Kiểm tra Odoo server có online không
 → Kiểm tra firewall/network connection
+→ Verify Odoo credentials bằng cách login web
+```
+
+### Lỗi Environment Variables
+```
+ERROR: ModuleNotFoundError: No module named 'dotenv'
+→ Chạy: pip install python-dotenv
+
+ERROR: KeyError trong config
+→ Kiểm tra file .env có tồn tại không
+→ Đảm bảo tất cả variables được định nghĩa trong .env
+→ Copy từ .env.example nếu cần
 ```
 
 ### Lỗi JavaScript
@@ -241,10 +273,20 @@ ERROR: 500 Internal Server Error
 
 ## 🔒 Security Notes
 
-- Đây là development server, không dùng cho production
-- Thông tin kết nối Odoo được lưu plaintext trong config.py
-- Không có authentication layer (dựa vào Odoo auth)
-- CORS được enable cho development
+- **Environment Variables**: Thông tin nhạy cảm được lưu trong file `.env` (không commit vào Git)
+- **Development Server**: Đây là development server, không dùng cho production
+- **Authentication**: Dựa vào Odoo authentication, không có layer riêng
+- **CORS**: Được enable cho development
+- **Git Security**: File `.env` đã được thêm vào `.gitignore`
+
+### Bảo mật cho Production:
+```bash
+# Tạo file .env riêng cho production với:
+FLASK_DEBUG=False
+# Sử dụng strong passwords
+# Enable HTTPS
+# Setup proper firewall rules
+```
 
 ## 🚀 Production Deployment
 
