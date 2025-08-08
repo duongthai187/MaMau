@@ -148,3 +148,14 @@ class PricingCalculator:
                 "last_update": None,
                 "error": str(e)
             }
+    
+    def get_current_rates(self) -> dict:
+        """Lấy tỷ giá hiện tại"""
+        current_rates = {}
+        for material, rate in self.rates.items():
+            current_rates[material] = {
+                "rate": rate.rate,
+                "timestamp": rate.timestamp.isoformat(),
+                "rate_version": rate.rate_version
+            }
+        return current_rates

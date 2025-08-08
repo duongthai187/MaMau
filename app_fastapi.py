@@ -20,12 +20,14 @@ from config import FASTAPI_CONFIG
 from models import *
 from pricing_models import PricingSnapshot, PricingRequest, PricingResponse, OfflineStrategy
 from kafka_pricing_consumer import KafkaPricingConsumer
+import json
+from kafka import KafkaProducer
 
 # Tạo FastAPI app
 app = FastAPI(
-    title="Odoo Product CRUD Client",
+    title="Quản lý mã mẫu",
     description="FastAPI client để quản lý sản phẩm Odoo thông qua XML-RPC API với Real-time Pricing",
-    version="2.0.0"
+    version="1.0.0"
 )
 
 # CORS middleware
@@ -45,8 +47,52 @@ templates = Jinja2Templates(directory="templates")
 # PRICING SYSTEM INTEGRATION
 # ================================
 
+# Kafka producer để gửi rates từ UI
+class RateProducer:
+    """Producer để gửi tỷ giá từ UI"""
+    
+    def __init__(self, bootstrap_servers: str = 'localhost:9092'):
+        self.bootstrap_servers = bootstrap_servers
+        self.producer = None
+        
+    def connect(self):
+        """Kết nối tới Kafka"""
+        try:
+            self.producer = KafkaProducer(
+                bootstrap_servers=self.bootstrap_servers,
+                value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+                key_serializer=lambda v: v.encode('utf-8') if v else None
+            )
+            return True
+        except Exception as e:
+            print(f"❌ Failed to connect to Kafka producer: {e}")
+            return False
+            
+    def publish_rate(self, material: str, rate: float):
+        """Publish rate update từ UI"""
+        if not self.producer:
+            if not self.connect():
+                return False
+                
+        data = {
+            "rate": rate,
+            "rate_version": int(datetime.utcnow().timestamp() * 1000),
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        }
+        
+        try:
+            self.producer.send('rates', key=material, value=data)
+            self.producer.flush()  # Ensure immediate delivery
+            return True
+        except Exception as e:
+            print(f"❌ Failed to publish rate: {e}")
+            return False
+
 # Kafka consumer cho real-time pricing
 kafka_consumer = KafkaPricingConsumer()
+
+# Kafka producer cho UI input
+rate_producer = RateProducer()
 
 # SSE connections management
 sse_connections: Set[asyncio.Queue] = set()
@@ -144,6 +190,17 @@ async def serials_page(request: Request):
 async def pricing_page(request: Request):
     """Trang demo real-time pricing"""
     return templates.TemplateResponse("pricing.html", {"request": request})
+
+@app.get("/pricings", response_class=HTMLResponse)
+async def pricing_page_redirect(request: Request):
+    """Redirect /pricings to /pricing"""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/pricing", status_code=301)
+
+@app.get("/rates", response_class=HTMLResponse)
+async def rates_page(request: Request):
+    """Trang quản lý tỷ giá real-time"""
+    return templates.TemplateResponse("rates.html", {"request": request})
 
 # ================================
 # API ROUTES - ATTRIBUTES
@@ -746,6 +803,59 @@ async def test_publish_pricing(background_tasks: BackgroundTasks):
         "message": "Test pricing data published",
         "timestamp": datetime.utcnow().isoformat()
     }
+
+# ================================
+# RATE MANAGEMENT API (UI Input)
+# ================================
+
+@app.post("/api/rates/update")
+async def update_rate_from_ui(request: dict):
+    """Update tỷ giá từ UI và gửi qua Kafka"""
+    try:
+        material = request.get("material")
+        rate = float(request.get("rate", 0))
+        
+        if not material or rate <= 0:
+            raise HTTPException(status_code=400, detail="Material và rate phải có giá trị hợp lệ")
+        
+        if material not in ["gold", "silver"]:
+            raise HTTPException(status_code=400, detail="Material phải là 'gold' hoặc 'silver'")
+        
+        # Gửi qua Kafka
+        success = rate_producer.publish_rate(material, rate)
+        
+        if not success:
+            raise HTTPException(status_code=500, detail="Không thể gửi dữ liệu qua Kafka")
+        
+        return {
+            "success": True,
+            "message": f"Đã cập nhật tỷ giá {material}: {rate:,.0f} VND",
+            "data": {
+                "material": material,
+                "rate": rate,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        }
+        
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Rate phải là số")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi: {str(e)}")
+
+@app.get("/api/rates/current")
+async def get_current_rates():
+    """Lấy tỷ giá hiện tại"""
+    try:
+        calculator = kafka_consumer.get_calculator()
+        rates = calculator.get_current_rates()
+        
+        return {
+            "success": True,
+            "data": rates,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi: {str(e)}")
 
 @app.get("/health")
 async def health_check():
