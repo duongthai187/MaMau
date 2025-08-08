@@ -23,6 +23,11 @@ class Rate(BaseModel):
     rate_version: int = Field(..., description="Version để handle out-of-order")
     timestamp: datetime
     
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat() + "Z"
+        }
+    
 class ProductWeights(BaseModel):
     """Trọng số và thông tin sản phẩm"""
     sku: str
@@ -34,6 +39,11 @@ class ProductWeights(BaseModel):
     formula: str = Field("rate * weight_gram + labor_cost", description="Công thức tính giá")
     weights_version: int = Field(..., description="Version để handle out-of-order")
     timestamp: datetime
+    
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat() + "Z"
+        }
 
 class PricingSnapshot(BaseModel):
     """Snapshot giá tính toán"""
@@ -49,6 +59,11 @@ class PricingSnapshot(BaseModel):
     snapshot_version: int = Field(..., description="Version để handle duplicates")
     ttl_sec: int = Field(300, description="Time to live (seconds)")
     as_of: datetime = Field(default_factory=datetime.utcnow)
+    
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat() + "Z"
+        }
     
     @property
     def is_expired(self) -> bool:

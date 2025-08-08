@@ -1,375 +1,283 @@
-# Odoo Product CRUD Client với Real-time Pricing
+# Odoo Product CRUD Client với Real-time Pricing System
 
-## 🎯 Tổng quan
+Ứng dụng FastAPI client để tương tác với Odoo server thông qua XML-RPC API, tích hợp hệ thống định giá thời gian thực với Kafka streaming.
 
-Ứng dụng FastAPI client để tương tác với Odoo server thông qua XML-RPC API, bao gồm:
-- **CRUD operations** cho Products, Templates, Categories, Attributes, Values, Serials
-- **Real-time Pricing System** với Server-Sent Events (SSE)
-- **Auto-code generation** cho sản phẩm dựa trên template và attributes
-- **Vietnamese support** với Bootstrap 5 UI
+## 🚀 Tính năng chính
 
-## 🏗️ Kiến trúc hệ thống
+### 1. **CRUD Operations** 
+- Quản lý danh mục sản phẩm (product.category)
+- Quản lý template sản phẩm (product.template) 
+- Quản lý sản phẩm cụ thể (product.product)
+- Giao diện web responsive với Bootstrap 5
 
-### Core Application
-```
-[Odoo Server] ↔ [XML-RPC Client] ↔ [FastAPI] ↔ [Bootstrap UI]
-```
+### 2. **Real-time Pricing System**
+- Tính toán giá theo tỷ giá vàng/bạc thời gian thực
+- Kafka streaming cho cập nhật liên tục
+- Server-Sent Events (SSE) cho real-time UI updates
+- Cache pricing với TTL (Time-To-Live)
+- Pricing calculator với material weights
 
-### Real-time Pricing
-```
-[Rates Source] ─┐
-                ├→ [Pricing Calculator] → [FastAPI Gateway] → [Browser SSE]
-[Weights Source] ─┘
-```
+### 3. **Monitoring & Health Check**
+- Health check endpoint với system stats
+- Kafka connection monitoring
+- SSE connections tracking
+- Calculator performance metrics
 
-## 🚀 Cài đặt và chạy
-
-### 1. Dependencies
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Cấu hình
-Tạo file `.env`:
-```bash
-# Odoo Connection
-ODOO_URL=https://your-odoo-server.com
-ODOO_DB=your_database
-ODOO_USERNAME=your_username
-ODOO_PASSWORD=your_password
-
-# FastAPI
-FASTAPI_HOST=0.0.0.0
-FASTAPI_PORT=5000
-FASTAPI_RELOAD=True
-```
-
-### 3. Chạy ứng dụng
-```bash
-python run_fastapi.py
-```
-
-**Truy cập:**
-- **Web Interface**: http://localhost:5000
-- **API Documentation**: http://localhost:5000/docs  
-- **Real-time Pricing**: http://localhost:5000/pricing
-
-> **Lưu ý**: Ứng dụng đã được **thống nhất** - tất cả tính năng CRUD và Real-time Pricing đều chạy trong cùng 1 FastAPI app!
-
-## 📋 Tính năng chính
-
-### 1. Product Management
-- ✅ **Categories**: Quản lý danh mục sản phẩm
-- ✅ **Attributes**: Thuộc tính sản phẩm (Size, Color, Material...)
-- ✅ **Values**: Giá trị thuộc tính (S/M/L, Red/Blue...)
-- ✅ **Templates**: Template sản phẩm với attributes
-- ✅ **Products**: Sản phẩm cụ thể với auto-code generation
-- ✅ **Serials**: Quản lý serial numbers (stock.lot)
-
-### 2. Real-time Pricing
-- ✅ **Live Updates**: Pricing thay đổi real-time qua SSE
-- ✅ **Auto-reconnect**: Tự động kết nối lại khi mất mạng  
-- ✅ **Local Caching**: Cache pricing data với TTL
-- ✅ **Offline Strategies**: Freeze/Surcharge/Deny khi data expired
-- ✅ **Material Support**: Tỷ giá vàng/bạc riêng biệt
-
-### 3. Advanced Features
-- ✅ **Auto-code Generation**: Tự động tạo mã SP từ template + attributes
-- ✅ **Vietnamese Support**: Chuyển đổi tiếng Việt không dấu
-- ✅ **Responsive UI**: Bootstrap 5 responsive design
-- ✅ **API Documentation**: Automatic OpenAPI docs
-- ✅ **Type Validation**: Pydantic models validation
-
-## 📡 API Endpoints
-
-### Core CRUD APIs
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/attributes` | GET, POST, PUT, DELETE | Quản lý attributes |
-| `/api/values` | GET, POST, PUT, DELETE | Quản lý attribute values |
-| `/api/categories` | GET, POST, PUT, DELETE | Quản lý categories |
-| `/api/templates` | GET, POST, PUT, DELETE | Quản lý templates |
-| `/api/products` | GET, POST, PUT, DELETE | Quản lý products |
-| `/api/serials` | GET, POST, PUT, DELETE | Quản lý serials |
-
-### Specialized APIs
-| Endpoint | Description |
-|----------|-------------|
-| `/api/templates/{id}/attributes` | Lấy attributes của template |
-| `/api/templates/suggest` | Gợi ý templates tương đồng |
-| `/api/products/all-attributes` | Lấy tất cả attributes cho filter |
-
-### Real-time Pricing APIs
-| Endpoint | Description |
-|----------|-------------|
-| `/events/pricing` | SSE stream cho pricing updates |
-| `/api/pricing/{sku}` | Lấy giá sản phẩm với offline strategy |
-| `/api/pricing` | Lấy tất cả giá hiện tại |
-| `/test/publish` | Trigger test pricing data |
-
-## 🗂️ Cấu trúc dự án
+## 📁 Cấu trúc dự án
 
 ```
 d:\BTMH\
-├── app_fastapi.py              # 🚀 FastAPI application CHÍNH - CRUD + Real-time Pricing
-├── odoo_client.py              # XML-RPC client cho Odoo
-├── config.py                   # Cấu hình kết nối
-├── models.py                   # Pydantic models cho CRUD validation
-├── pricing_models.py           # Pydantic models cho pricing system
-├── pricing_calculator.py       # Logic tính giá real-time
-├── kafka_pricing_consumer.py   # Kafka consumer cho pricing updates
-├── run_fastapi.py              # Script khởi chạy ứng dụng chính
-├── requirements.txt            # Dependencies
-├── .env                        # Environment variables
-├── templates/                  # HTML templates
-│   ├── index.html             # Trang chủ
-│   ├── attributes.html        # Quản lý attributes
-│   ├── values.html            # Quản lý values
-│   ├── categories.html        # Quản lý categories  
-│   ├── templates.html         # Quản lý templates
-│   ├── products.html          # Quản lý products
-│   ├── serials.html           # Quản lý serials
-│   └── pricing.html           # Real-time pricing demo
-└── static/                    # Static files
-    ├── css/style.css          # Custom styles
-    └── js/                    # JavaScript files
-        ├── attributes.js      # Attributes management
-        ├── values.js          # Values management
-        ├── categories.js      # Categories management
-        ├── templates.js       # Templates management  
-        ├── products.js        # Products management
-        ├── serials.js         # Serials management
-        └── pricing_client.js  # Real-time pricing client
+├── app_fastapi.py              # FastAPI main application
+├── odoo_client.py              # Odoo XML-RPC client
+├── config.py                   # Configuration settings
+├── models.py                   # Pydantic models cho CRUD
+├── pricing_models.py           # Pydantic models cho pricing
+├── pricing_calculator.py       # Pricing calculation logic
+├── kafka_pricing_consumer.py   # Kafka consumer service
+├── kafka_producer.py           # Kafka producer for test data
+├── test_pricing.py             # Test script cho pricing system
+├── docker-compose.yml          # Kafka infrastructure
+├── templates/                  # Jinja2 HTML templates
+│   ├── base.html
+│   ├── categories.html
+│   ├── products.html
+│   ├── templates.html
+│   └── pricing.html
+└── static/                     # CSS và JavaScript files
+    ├── style.css
+    └── app.js
 ```
 
-> **🎯 Kiến trúc thống nhất**: Tất cả tính năng (CRUD + Real-time Pricing) đều chạy trong 1 FastAPI app duy nhất!
+## 🛠️ Cài đặt và Chạy
 
-## 📊 Real-time Pricing System
+### 1. **Cài đặt Dependencies**
 
-### Data Models
-
-#### Rate Update (Tỷ giá)
-```json
-{
-  "material": "gold|silver",
-  "rate": 75500000,
-  "rate_version": 1704705600000,
-  "timestamp": "2025-01-08T10:00:00Z"
-}
-```
-
-#### Product Weights (Trọng số)
-```json
-{
-  "sku": "PRODUCT_001",
-  "material": "gold", 
-  "weight_gram": 5.5,
-  "stone_weight": 0.2,
-  "labor_cost": 500000,
-  "markup_percent": 15,
-  "weights_version": 1704705600000,
-  "timestamp": "2025-01-08T10:00:00Z"
-}
-```
-
-#### Pricing Snapshot (Kết quả)
-```json
-{
-  "sku": "PRODUCT_001",
-  "base_price": 415250000,
-  "final_price": 477537500,
-  "rate_used": 75500000,
-  "weight_gram": 5.5,
-  "labor_cost": 500000,
-  "markup_percent": 15,
-  "material": "gold",
-  "snapshot_version": 1704705660000,
-  "ttl_sec": 300,
-  "as_of": "2025-01-08T10:01:00Z"
-}
-```
-
-### Offline Strategies
-
-Khi pricing data hết hạn:
-
-1. **Freeze** (default) - Dùng giá cũ, đánh dấu expired
-2. **Surcharge** - Cộng thêm 5% rủi ro  
-3. **Deny** - Từ chối trả giá
-
-### Browser Client Features
-
-- **Auto-reconnecting SSE** với exponential backoff
-- **Local caching** với TTL validation
-- **Real-time updates** với visual feedback
-- **Offline handling** với configurable strategies
-- **Search & filter** by SKU và material
-- **Vietnamese currency formatting**
-
-## 🛠️ Development
-
-### Thêm Model mới
-1. Thêm Pydantic model trong `models.py`
-2. Thêm API endpoints trong `app_fastapi.py`
-3. Tạo HTML template trong `templates/`
-4. Tạo JavaScript logic trong `static/js/`
-
-### Real-time Pricing Integration
-
-#### Server Side (Python)
-```python
-from pricing_models import Rate, ProductWeights, PricingSnapshot
-from pricing_calculator import PricingCalculator
-
-calculator = PricingCalculator()
-
-# Update rate
-rate = Rate(material="gold", rate=75500000, rate_version=123)
-calculator.update_rate(rate)
-
-# Update weights  
-weights = ProductWeights(sku="SKU001", material="gold", weight_gram=5.5)
-calculator.update_weights(weights)
-
-# Get pricing
-snapshot = calculator.get_pricing("SKU001")
-```
-
-#### Client Side (JavaScript)
-```javascript
-const pricingClient = new PricingClient();
-
-// Listen for updates
-pricingClient.onPricingUpdate = (type, pricing) => {
-    console.log('Price updated:', pricing);
-    updateUI(pricing);
-};
-
-// Get pricing with strategy
-const result = await pricingClient.getPricing('SKU001', 'freeze');
-if (result.success) {
-    displayPrice(result.data);
-}
-```
-
-## 🔧 Configuration
-
-### Environment Variables
 ```bash
-# Odoo Connection
-ODOO_URL=https://admin.hinosoft.com
-ODOO_DB=goldsun
-ODOO_USERNAME=admin
-ODOO_PASSWORD=admin
-
-# FastAPI
-FASTAPI_HOST=0.0.0.0
-FASTAPI_PORT=5000
-FASTAPI_RELOAD=True
-
-# Real-time Pricing (Optional)
-KAFKA_BOOTSTRAP_SERVERS=localhost:9092
-KAFKA_GROUP_ID=pricing-gateway
-PRICING_TTL_SEC=300
+pip install fastapi uvicorn jinja2 python-multipart
+pip install kafka-python requests pydantic
+pip install sse-starlette
 ```
 
-> **🎯 1 Server duy nhất**: Tất cả APIs (CRUD + Pricing) đều chạy trên cùng 1 port!
+### 2. **Cấu hình Odoo Connection**
 
-### Odoo Models được sử dụng
-- `product.attribute` - Thuộc tính sản phẩm
-- `product.attribute.value` - Giá trị thuộc tính
-- `product.category` - Danh mục sản phẩm
-- `product.template` - Template sản phẩm  
-- `product.template.attribute.line` - Liên kết template-attribute
-- `product.product` - Sản phẩm cụ thể
-- `stock.lot` - Serial numbers
+Cập nhật file `config.py`:
+```python
+ODOO_CONFIG = {
+    'url': 'http://your-odoo-server:8069',
+    'db': 'your-database',
+    'username': 'your-username', 
+    'password': 'your-password'
+}
+```
+
+### 3. **Khởi động Kafka Infrastructure**
+
+```bash
+# Khởi động Kafka services
+docker-compose up -d
+
+# Kiểm tra services
+docker-compose ps
+```
+
+### 4. **Chạy Kafka Producer (tùy chọn)**
+
+```bash
+# Terminal 1: Chạy producer để generate test data
+python kafka_producer.py
+```
+
+### 5. **Khởi động FastAPI Application**
+
+```bash
+# Terminal 2: Chạy main app
+python app_fastapi.py
+```
+
+### 6. **Test Hệ thống**
+
+```bash
+# Terminal 3: Chạy test script
+python test_pricing.py
+```
+
+## 🌐 Endpoints
+
+### **Web Interface**
+- **Main UI**: http://localhost:5000
+- **Pricing Dashboard**: http://localhost:5000/pricing  
+- **API Documentation**: http://localhost:5000/docs
+- **Kafka UI**: http://localhost:8080
+
+### **API Endpoints**
+
+#### CRUD Operations
+```
+GET    /api/categories          # Lấy danh sách categories
+POST   /api/categories          # Tạo category mới
+PUT    /api/categories/{id}     # Cập nhật category
+DELETE /api/categories/{id}     # Xóa category
+
+GET    /api/templates           # Lấy danh sách templates  
+POST   /api/templates           # Tạo template mới
+PUT    /api/templates/{id}      # Cập nhật template
+DELETE /api/templates/{id}      # Xóa template
+
+GET    /api/products            # Lấy danh sách products
+POST   /api/products            # Tạo product mới
+PUT    /api/products/{id}       # Cập nhật product
+DELETE /api/products/{id}       # Xóa product
+```
+
+#### Pricing System
+```
+GET    /api/pricing             # Lấy tất cả pricing data
+GET    /api/pricing/{sku}       # Lấy pricing cho SKU cụ thể
+POST   /api/pricing/calculate   # Tính pricing cho request
+GET    /api/pricing/rates       # Lấy current rates
+GET    /events/pricing          # SSE stream cho real-time updates
+```
+
+#### System Monitoring  
+```
+GET    /health                  # Health check với system stats
+POST   /test/publish            # Publish test pricing data
+```
+
+## 📊 Pricing System Architecture
+
+### **Kafka Topics**
+- `pricing_rates`: Tỷ giá vàng/bạc updates
+- `product_weights`: Trọng lượng sản phẩm updates
+
+### **Data Flow**
+```
+Kafka Producer → Kafka Topics → Kafka Consumer → Pricing Calculator → SSE Events → Web UI
+```
+
+### **Pricing Models**
+
+```python
+# Rate model
+{
+    "material": "gold|silver",
+    "rate_vnd": 75000000,
+    "timestamp": "2025-08-08T04:14:14.856584+00:00"
+}
+
+# Product Weights model  
+{
+    "sku": "RING_GOLD_001",
+    "weight_gram": 4.98921118664839,
+    "material": "gold",
+    "timestamp": "2025-08-08T04:14:14.856584+00:00"
+}
+
+# Pricing Response
+{
+    "sku": "RING_GOLD_001",
+    "final_price": 465281422,
+    "material": "gold", 
+    "weight_gram": 4.98921118664839,
+    "rate_vnd": 75000000,
+    "calculated_at": "2025-08-08T04:14:14.856584+00:00"
+}
+```
 
 ## 🧪 Testing
 
-### Manual Testing
-1. Truy cập http://localhost:5000
-2. Test CRUD operations trên từng module
-3. Test real-time pricing: http://localhost:5000/pricing
-4. Click "Test Update" để trigger pricing updates
+### **Test Script Features**
+- Health check validation
+- Pricing API testing
+- Kafka connectivity verification  
+- SSE connections monitoring
+- End-to-end system testing
 
-### API Testing
+### **Sample Test Output**
+```
+=== Real-time Pricing System Test ===
+
+🔍 Health Check:
+  Status: healthy
+  Kafka Connected: True
+  SSE Connections: 2
+  Calculator Stats: {'rates_count': 2, 'weights_count': 4, 'pricing_cache_count': 6, 'valid_pricing_count': 6, 'materials': ['gold', 'silver'], 'last_update': '2025-08-08T04:14:14.856584+00:00'}
+
+🔍 Testing Pricing API:
+  All pricing count: 6
+  NECKLACE_GOLD_001: 16,592,984 VND
+  PENDANT_GOLD_001: 923,262,796 VND
+  WEDDING_RING_GOLD_001: 3,584,744 VND
+
+✅ Test completed!
+```
+
+## 🚀 Quick Start Guide
+
+### **Scenario 1: Chỉ CRUD (Không cần Kafka)**
 ```bash
-# Health check
-curl http://localhost:5000/health
+# 1. Cài đặt dependencies
+pip install fastapi uvicorn jinja2 python-multipart pydantic
 
-# Get all products
-curl http://localhost:5000/api/products
+# 2. Cấu hình Odoo trong config.py
 
-# Test real-time pricing
-curl -N http://localhost:5000/events/pricing
+# 3. Chạy app
+python app_fastapi.py
+
+# 4. Truy cập http://localhost:5000
 ```
 
-## 🚨 Production Deployment
+### **Scenario 2: Full System với Real-time Pricing**
+```bash
+# 1. Start Kafka infrastructure
+docker-compose up -d
 
-### Docker Setup
-```dockerfile
-FROM python:3.11-slim
+# 2. Start data producer (Terminal 1)
+python kafka_producer.py
 
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+# 3. Start FastAPI app (Terminal 2)  
+python app_fastapi.py
 
-COPY . .
-EXPOSE 5000
+# 4. Test system (Terminal 3)
+python test_pricing.py
 
-CMD ["python", "run_fastapi.py"]
+# 5. Truy cập http://localhost:5000/pricing
 ```
 
-### Environment
-- Python 3.11+
-- Odoo 18.0+
-- FastAPI 0.104+
-- Bootstrap 5.1+
+## 🔍 Troubleshooting
 
-### Scaling Considerations
-- Use Redis cho pricing cache trong production
-- Load balancer cho multiple FastAPI instances
-- Kafka cluster cho high-throughput pricing updates
-- CDN cho static files
+### **Common Issues**
 
-## 📈 Monitoring
+1. **Kafka Connection Failed**
+   ```bash
+   # Kiểm tra Kafka services
+   docker-compose ps
+   
+   # Restart Kafka
+   docker-compose restart kafka
+   ```
 
-### Health Endpoints
-- `/health` - Application health
-- `/docs` - API documentation
-- `/redoc` - Alternative API docs
+2. **Odoo Connection Error**  
+   ```python
+   # Kiểm tra config trong config.py
+   # Verify Odoo server accessibility
+   ```
 
-### Metrics
-- API response times
-- Odoo connection status  
-- SSE connection count
-- Pricing cache hit rate
-- Error rates per endpoint
+3. **SSE Not Working**
+   ```bash
+   # Kiểm tra browser developer tools
+   # Verify /events/pricing endpoint
+   ```
 
-## 🤝 Contributing
-
-1. Fork repository
-2. Create feature branch
-3. Implement changes với tests
-4. Update documentation
-5. Submit pull request
-
-## 📄 License
-
-MIT License - xem file LICENSE để biết thêm chi tiết.
+4. **Pricing Data Empty**
+   ```bash
+   # Chạy Kafka producer
+   python kafka_producer.py
+   
+   # Trigger test data
+   curl -X POST http://localhost:5000/test/publish
+   ```
 
 ---
 
-## 🎉 Features Summary
-
-✅ **Complete CRUD** cho tất cả Odoo product entities  
-✅ **Real-time Pricing** với SSE và caching  
-✅ **Unified FastAPI App** - 1 server cho tất cả tính năng
-✅ **Auto-code Generation** cho products  
-✅ **Vietnamese Support** trong UI và data processing  
-✅ **Bootstrap 5 UI** responsive design  
-✅ **FastAPI + Pydantic** type-safe APIs  
-✅ **Auto Documentation** với OpenAPI  
-✅ **Production Ready** với proper error handling  
-
-**Tổng cộng: 1 ứng dụng thống nhất, 8 modules CRUD, Real-time pricing, 25+ API endpoints! 🚀**
+**Happy Coding! 🚀**

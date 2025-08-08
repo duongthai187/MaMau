@@ -53,13 +53,19 @@ sse_connections: Set[asyncio.Queue] = set()
 
 def on_pricing_update(sku: str, snapshot: PricingSnapshot):
     """Callback khi có pricing update từ Kafka"""
+    global sse_connections
+    
+    # Sử dụng json() method của Pydantic để handle datetime serialization
+    snapshot_json = snapshot.json()
+    snapshot_dict = json.loads(snapshot_json)
+    
     event_data = {
         "event": "pricing_update",
         "data": json.dumps({
             "type": "pricing_update",
             "sku": sku,
-            "pricing": snapshot.dict(),
-            "timestamp": datetime.utcnow().isoformat()
+            "pricing": snapshot_dict,
+            "timestamp": datetime.utcnow().isoformat() + "Z"
         })
     }
     
@@ -76,6 +82,9 @@ def on_pricing_update(sku: str, snapshot: PricingSnapshot):
     sse_connections -= disconnected
     
     print(f"Broadcasted pricing update for {sku} to {len(sse_connections)} connections")
+    sse_connections -= disconnected
+    
+    print(f"Broadcasted pricing update for {sku} to {len(sse_connections)} connections")
 
 # Setup Kafka callback
 kafka_consumer.on_pricing_update = on_pricing_update
@@ -84,8 +93,13 @@ kafka_consumer.on_pricing_update = on_pricing_update
 @app.on_event("startup")
 async def startup_event():
     odoo_client.connect()
-    # Khởi động Kafka consumer trong background
-    asyncio.create_task(kafka_consumer.start())
+    # Khởi động Kafka consumer trong background thread (không phải async)
+    try:
+        kafka_consumer.start()
+        print("Kafka pricing consumer started successfully")
+    except Exception as e:
+        print(f"Warning: Could not start Kafka consumer: {e}")
+        print("Application will continue without real-time pricing updates")
 
 # ================================
 # HTML ROUTES
@@ -600,10 +614,11 @@ def generate_attribute_code(name):
 @app.get("/events/pricing")
 async def pricing_events(request: Request):
     """Server-Sent Events cho real-time pricing updates"""
+    global sse_connections
     
     async def event_stream():
         queue = asyncio.Queue()
-        sse_connections.add(queue)
+        sse_connections.add(queue)  # sse_connections được access từ global scope trong function cha
         
         try:
             # Gửi connection established event
@@ -735,16 +750,25 @@ async def test_publish_pricing(background_tasks: BackgroundTasks):
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    calculator = kafka_consumer.get_calculator()
-    stats = calculator.get_stats()
-    
-    return {
-        "status": "healthy",
-        "kafka_connected": kafka_consumer.running,
-        "sse_connections": len(sse_connections),
-        "calculator_stats": stats,
-        "timestamp": datetime.utcnow().isoformat()
-    }
+    global sse_connections
+    try:
+        calculator = kafka_consumer.get_calculator()
+        stats = calculator.get_stats()
+        
+        return {
+            "status": "healthy",
+            "kafka_connected": kafka_consumer.running,
+            "sse_connections": len(sse_connections),
+            "calculator_stats": stats,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e),
+            "kafka_connected": kafka_consumer.running,
+            "timestamp": datetime.utcnow().isoformat()
+        }
 
 if __name__ == "__main__":
     import uvicorn

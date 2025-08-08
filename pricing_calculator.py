@@ -122,11 +122,29 @@ class PricingCalculator:
         
     def get_stats(self) -> dict:
         """Thống kê hệ thống"""
-        return {
-            "rates_count": len(self.rates),
-            "weights_count": len(self.weights),
-            "pricing_cache_count": len(self.pricing_cache),
-            "valid_pricing_count": sum(1 for sku in self.pricing_cache if self.is_pricing_valid(sku)),
-            "materials": list(self.rates.keys()),
-            "last_update": max([r.timestamp for r in self.rates.values()] + [datetime.min]).isoformat() if self.rates else None
-        }
+        try:
+            last_update = None
+            if self.rates:
+                timestamps = [r.timestamp for r in self.rates.values()]
+                if timestamps:
+                    # Chỉ lấy timestamp mới nhất mà không so sánh với datetime.min
+                    last_update = max(timestamps).isoformat()
+            
+            return {
+                "rates_count": len(self.rates),
+                "weights_count": len(self.weights),
+                "pricing_cache_count": len(self.pricing_cache),
+                "valid_pricing_count": sum(1 for sku in self.pricing_cache if self.is_pricing_valid(sku)),
+                "materials": list(self.rates.keys()),
+                "last_update": last_update
+            }
+        except Exception as e:
+            return {
+                "rates_count": len(self.rates),
+                "weights_count": len(self.weights),
+                "pricing_cache_count": len(self.pricing_cache),
+                "valid_pricing_count": 0,
+                "materials": list(self.rates.keys()),
+                "last_update": None,
+                "error": str(e)
+            }
