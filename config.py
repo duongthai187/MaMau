@@ -12,9 +12,9 @@ ODOO_CONFIG = {
     'password': os.getenv('ODOO_PASSWORD'),
 }
 
-# Cấu hình Flask từ environment variables
-FLASK_CONFIG = {
-    'host': '0.0.0.0',
-    'port': 5000,
-    'debug': True
+# Cấu hình FastAPI từ environment variables
+FASTAPI_CONFIG = {
+    'host': os.getenv('FASTAPI_HOST', '0.0.0.0'),
+    'port': int(os.getenv('FASTAPI_PORT', 5000)),
+    'reload': os.getenv('FASTAPI_RELOAD', 'True').lower() == 'true'
 }
