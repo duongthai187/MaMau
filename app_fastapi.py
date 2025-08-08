@@ -2,18 +2,24 @@
 FastAPI Application - Migrated from Flask
 Odoo Product CRUD Client với Real-time Pricing
 """
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, HTTPException, Request, BackgroundTasks
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
+from sse_starlette.sse import EventSourceResponse
 import unicodedata
-from typing import List, Optional
+import asyncio
+import json
+from datetime import datetime
+from typing import List, Optional, Dict, Set
 import uvicorn
 
 from odoo_client import odoo_client
 from config import FASTAPI_CONFIG
 from models import *
+from pricing_models import PricingSnapshot, PricingRequest, PricingResponse, OfflineStrategy
+from kafka_pricing_consumer import KafkaPricingConsumer
 
 # Tạo FastAPI app
 app = FastAPI(
@@ -35,10 +41,51 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-# Kết nối Odoo khi khởi động
+# ================================
+# PRICING SYSTEM INTEGRATION
+# ================================
+
+# Kafka consumer cho real-time pricing
+kafka_consumer = KafkaPricingConsumer()
+
+# SSE connections management
+sse_connections: Set[asyncio.Queue] = set()
+
+def on_pricing_update(sku: str, snapshot: PricingSnapshot):
+    """Callback khi có pricing update từ Kafka"""
+    event_data = {
+        "event": "pricing_update",
+        "data": json.dumps({
+            "type": "pricing_update",
+            "sku": sku,
+            "pricing": snapshot.dict(),
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    }
+    
+    # Broadcast tới tất cả SSE connections
+    disconnected = set()
+    for queue in sse_connections:
+        try:
+            queue.put_nowait(event_data)
+        except:
+            # Queue full hoặc connection dead
+            disconnected.add(queue)
+            
+    # Cleanup dead connections
+    sse_connections -= disconnected
+    
+    print(f"Broadcasted pricing update for {sku} to {len(sse_connections)} connections")
+
+# Setup Kafka callback
+kafka_consumer.on_pricing_update = on_pricing_update
+
+# Kết nối Odoo và khởi động pricing system khi khởi động
 @app.on_event("startup")
 async def startup_event():
     odoo_client.connect()
+    # Khởi động Kafka consumer trong background
+    asyncio.create_task(kafka_consumer.start())
 
 # ================================
 # HTML ROUTES
@@ -194,7 +241,7 @@ async def get_categories():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/categories", response_model=APIResponse)
+@app.post("/api/categories", response_model=APIResponse)  
 async def create_category(category: CategoryCreate):
     """Tạo product category mới"""
     try:
@@ -545,6 +592,159 @@ def generate_attribute_code(name):
     name = re.sub(r'[^A-Z0-9]', '', name)
     
     return name[:10]
+
+# ================================
+# REAL-TIME PRICING APIs
+# ================================
+
+@app.get("/events/pricing")
+async def pricing_events(request: Request):
+    """Server-Sent Events cho real-time pricing updates"""
+    
+    async def event_stream():
+        queue = asyncio.Queue()
+        sse_connections.add(queue)
+        
+        try:
+            # Gửi connection established event
+            yield {
+                "event": "connected",
+                "data": json.dumps({
+                    "type": "connected", 
+                    "message": "SSE connection established",
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+            }
+            
+            while True:
+                try:
+                    # Đợi event từ queue hoặc timeout sau 30s để gửi keepalive
+                    event = await asyncio.wait_for(queue.get(), timeout=30)
+                    yield event
+                except asyncio.TimeoutError:
+                    # Gửi keepalive event
+                    yield {
+                        "event": "keepalive",
+                        "data": json.dumps({
+                            "type": "keepalive",
+                            "timestamp": datetime.utcnow().isoformat()
+                        })
+                    }
+                except Exception as e:
+                    print(f"Error in SSE stream: {e}")
+                    break
+                    
+        finally:
+            # Cleanup connection
+            sse_connections.discard(queue)
+            
+    return EventSourceResponse(event_stream())
+
+@app.get("/api/pricing/{sku}")
+async def get_pricing(sku: str, strategy: OfflineStrategy = OfflineStrategy.FREEZE):
+    """Lấy giá sản phẩm theo SKU"""
+    calculator = kafka_consumer.get_calculator()
+    snapshot = calculator.get_pricing(sku)
+    
+    if not snapshot:
+        return PricingResponse(
+            success=False,
+            error=f"No pricing data for SKU: {sku}"
+        )
+        
+    # Kiểm tra expiry và apply strategy
+    is_expired = snapshot.is_expired
+    strategy_applied = None
+    
+    if is_expired:
+        if strategy == OfflineStrategy.DENY:
+            return PricingResponse(
+                success=False,
+                error=f"Pricing data expired for SKU: {sku}",
+                is_expired=True
+            )
+        elif strategy == OfflineStrategy.SURCHARGE:
+            # Cộng thêm 5% surcharge
+            snapshot.final_price *= 1.05
+            strategy_applied = OfflineStrategy.SURCHARGE
+        else:  # FREEZE
+            strategy_applied = OfflineStrategy.FREEZE
+            
+    return PricingResponse(
+        success=True,
+        data=snapshot,
+        is_cached=True,
+        is_expired=is_expired,
+        strategy_applied=strategy_applied
+    )
+
+@app.get("/api/pricing")
+async def get_all_pricing():
+    """Lấy tất cả giá sản phẩm hiện tại"""
+    calculator = kafka_consumer.get_calculator()
+    all_pricing = calculator.get_all_pricing()
+    return {
+        "success": True,
+        "data": all_pricing,
+        "count": len(all_pricing),
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+@app.post("/test/publish")
+async def test_publish_pricing(background_tasks: BackgroundTasks):
+    """Test endpoint để trigger pricing updates"""
+    
+    def publish_test_data():
+        calculator = kafka_consumer.get_calculator()
+        
+        # Test rate update
+        from pricing_models import Rate, ProductWeights
+        
+        rate = Rate(
+            material="gold", 
+            rate=75500000,
+            rate_version=int(datetime.utcnow().timestamp() * 1000)
+        )
+        calculator.update_rate(rate)
+        
+        # Test weights update
+        weights = ProductWeights(
+            sku="TEST_PRODUCT_001",
+            material="gold",
+            weight_gram=5.5,
+            stone_weight=0.2,
+            labor_cost=500000,
+            markup_percent=15,
+            weights_version=int(datetime.utcnow().timestamp() * 1000)
+        )
+        calculator.update_weights(weights)
+        
+        # Trigger pricing calculation
+        snapshot = calculator.get_pricing("TEST_PRODUCT_001")
+        if snapshot:
+            on_pricing_update("TEST_PRODUCT_001", snapshot)
+    
+    background_tasks.add_task(publish_test_data)
+    
+    return {
+        "success": True,
+        "message": "Test pricing data published",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    calculator = kafka_consumer.get_calculator()
+    stats = calculator.get_stats()
+    
+    return {
+        "status": "healthy",
+        "kafka_connected": kafka_consumer.running,
+        "sse_connections": len(sse_connections),
+        "calculator_stats": stats,
+        "timestamp": datetime.utcnow().isoformat()
+    }
 
 if __name__ == "__main__":
     import uvicorn

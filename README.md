@@ -54,6 +54,8 @@ python run_fastapi.py
 - **API Documentation**: http://localhost:5000/docs  
 - **Real-time Pricing**: http://localhost:5000/pricing
 
+> **Lưu ý**: Ứng dụng đã được **thống nhất** - tất cả tính năng CRUD và Real-time Pricing đều chạy trong cùng 1 FastAPI app!
+
 ## 📋 Tính năng chính
 
 ### 1. Product Management
@@ -109,11 +111,14 @@ python run_fastapi.py
 
 ```
 d:\BTMH\
-├── app_fastapi.py              # FastAPI application chính
+├── app_fastapi.py              # 🚀 FastAPI application CHÍNH - CRUD + Real-time Pricing
 ├── odoo_client.py              # XML-RPC client cho Odoo
 ├── config.py                   # Cấu hình kết nối
-├── models.py                   # Pydantic models cho validation
-├── run_fastapi.py              # Script khởi chạy
+├── models.py                   # Pydantic models cho CRUD validation
+├── pricing_models.py           # Pydantic models cho pricing system
+├── pricing_calculator.py       # Logic tính giá real-time
+├── kafka_pricing_consumer.py   # Kafka consumer cho pricing updates
+├── run_fastapi.py              # Script khởi chạy ứng dụng chính
 ├── requirements.txt            # Dependencies
 ├── .env                        # Environment variables
 ├── templates/                  # HTML templates
@@ -136,6 +141,8 @@ d:\BTMH\
         ├── serials.js         # Serials management
         └── pricing_client.js  # Real-time pricing client
 ```
+
+> **🎯 Kiến trúc thống nhất**: Tất cả tính năng (CRUD + Real-time Pricing) đều chạy trong 1 FastAPI app duy nhất!
 
 ## 📊 Real-time Pricing System
 
@@ -266,6 +273,8 @@ KAFKA_GROUP_ID=pricing-gateway
 PRICING_TTL_SEC=300
 ```
 
+> **🎯 1 Server duy nhất**: Tất cả APIs (CRUD + Pricing) đều chạy trên cùng 1 port!
+
 ### Odoo Models được sử dụng
 - `product.attribute` - Thuộc tính sản phẩm
 - `product.attribute.value` - Giá trị thuộc tính
@@ -355,6 +364,7 @@ MIT License - xem file LICENSE để biết thêm chi tiết.
 
 ✅ **Complete CRUD** cho tất cả Odoo product entities  
 ✅ **Real-time Pricing** với SSE và caching  
+✅ **Unified FastAPI App** - 1 server cho tất cả tính năng
 ✅ **Auto-code Generation** cho products  
 ✅ **Vietnamese Support** trong UI và data processing  
 ✅ **Bootstrap 5 UI** responsive design  
@@ -362,4 +372,4 @@ MIT License - xem file LICENSE để biết thêm chi tiết.
 ✅ **Auto Documentation** với OpenAPI  
 ✅ **Production Ready** với proper error handling  
 
-**Tổng cộng: 8 modules, 25+ API endpoints, Real-time updates, Production-ready! 🚀**
+**Tổng cộng: 1 ứng dụng thống nhất, 8 modules CRUD, Real-time pricing, 25+ API endpoints! 🚀**
