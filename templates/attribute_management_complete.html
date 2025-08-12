@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Thuộc tính Trang sức</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-gold: #F39C12;
+            --dark-gold: #E67E22;
+            --primary-red: #E74C3C;
+            --dark-red: #C0392B;
+            --text-dark: #2C3E50;
+            --border-light: #E8E8E8;
+            --shadow-light: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-gold: 0 4px 15px rgba(243, 156, 18, 0.3);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--text-dark);
+        }
+
+        .jewelry-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: var(--shadow-light);
+            border: none;
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .jewelry-card-header {
+            background: linear-gradient(135deg, var(--primary-gold) 0%, var(--dark-gold) 100%);
+            color: white;
+            padding: 1.5rem;
+            border: none;
+            font-weight: 700;
+        }
+
+        .ruby-theme {
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%);
+        }
+
+        .jewelry-header {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 250, 0.9) 100%);
+            border-radius: 20px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            box-shadow: var(--shadow-light);
+            color: var(--text-dark);
+        }
+
+        .jewelry-tabs {
+            margin-bottom: 2rem;
+            gap: 0.5rem;
+        }
+
+        .jewelry-tab-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid transparent;
+            color: var(--text-dark);
+            padding: 1rem 2rem;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .btn-check:checked + .jewelry-tab-btn {
+            background: linear-gradient(135deg, var(--primary-gold) 0%, var(--dark-gold) 100%);
+            color: white;
+            box-shadow: var(--shadow-gold);
+            transform: translateY(-2px);
+        }
+
+        .jewelry-form-control {
+            border: 2px solid var(--border-light);
+            border-radius: 8px;
+            padding: 0.75rem;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .jewelry-form-control:focus {
+            border-color: var(--primary-gold);
+            box-shadow: 0 0 0 0.2rem rgba(243, 156, 18, 0.25);
+        }
+
+        .jewelry-table {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-light);
+        }
+
+        .jewelry-table thead {
+            background: linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%);
+            color: var(--text-dark);
+            font-weight: 700;
+        }
+
+        .jewelry-table tbody tr {
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .gem-icon {
+            background: linear-gradient(135deg, var(--primary-gold) 0%, var(--dark-gold) 100%);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            box-shadow: var(--shadow-gold);
+        }
+
+        .ruby-icon {
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .btn-jewelry {
+            border-radius: 8px;
+            font-weight: 600;
+            padding: 0.5rem 1.2rem;
+        }
+
+        .btn-jewelry-primary {
+            background: linear-gradient(135deg, var(--primary-gold) 0%, var(--dark-gold) 100%);
+            border: none;
+            color: white;
+        }
+
+        .btn-jewelry-danger {
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%);
+            border: none;
+            color: white;
+        }
+
+        .pagination .page-link {
+            border-radius: 8px;
+            margin: 0 2px;
+            border: 2px solid var(--border-light);
+            color: var(--text-dark);
+        }
+
+        .pagination .page-link:hover {
+            background-color: var(--primary-gold);
+            border-color: var(--primary-gold);
+            color: white;
+        }
+
+        .pagination .page-item.active .page-link {
+            background-color: var(--primary-gold);
+            border-color: var(--primary-gold);
+        }
+
+        .field-type-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-char { background: #E3F2FD; color: #1976D2; }
+        .badge-float { background: #F3E5F5; color: #7B1FA2; }
+        .badge-integer { background: #E8F5E8; color: #388E3C; }
+        .badge-boolean { background: #FFF3E0; color: #F57C00; }
+        .badge-date { background: #FFEBEE; color: #D32F2F; }
+        .badge-selection { background: #F1F8E9; color: #689F38; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <!-- Header -->
+        <div class="jewelry-header">
+            <h1 class="display-5 fw-bold">
+                <span class="gem-icon">
+                    <i class="fas fa-gem"></i>
+                </span>
+                Quản lý Thuộc tính Trang sức
+            </h1>
+            <p class="mt-2 mb-0 opacity-90">
+                <i class="fas fa-sparkles me-2"></i>
+                Hệ thống quản lý nhóm thuộc tính và thuộc tính vàng
+            </p>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="jewelry-tabs d-flex justify-content-center flex-wrap">
+            <input type="radio" class="btn-check" name="mainTab" id="groupsTab" checked>
+            <label class="jewelry-tab-btn" for="groupsTab">
+                <i class="fas fa-layer-group me-2"></i>
+                Nhóm Thuộc tính
+            </label>
+            
+            <input type="radio" class="btn-check" name="mainTab" id="attributesTab">
+            <label class="jewelry-tab-btn" for="attributesTab">
+                <i class="fas fa-tags me-2"></i>
+                Quản lý thuộc tính
+            </label>
+        </div>
+
+        <!-- Tab Content Areas -->
+        <div class="container-fluid">
+            
+            <!-- Tab 1: Attribute Groups -->
+            <div id="groupsContent" class="tab-content active">
+                <div class="row">
+                    <!-- Left Column: Form -->
+                    <div class="col-lg-5 mb-4">
+                        <div class="jewelry-card">
+                            <div class="jewelry-card-header">
+                                <h5 class="mb-0" id="groupFormTitle">
+                                    <span class="gem-icon">
+                                        <i class="fas fa-layer-group"></i>
+                                    </span>
+                                    Tạo / Chỉnh sửa Nhóm Thuộc tính
+                                </h5>
+                            </div>
+                            <div class="card-body p-4">
+                                <form id="groupForm">
+                                    <input type="hidden" id="groupId" name="id">
+                                    
+                                    <div class="mb-3">
+                                        <label for="groupName" class="form-label fw-bold">Tên nhóm thuộc tính *</label>
+                                        <input type="text" class="form-control jewelry-form-control" 
+                                               id="groupName" name="name" required
+                                               placeholder="Ví dụ: Kim loại quý, Đá quý...">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="groupCode" class="form-label fw-bold">Mã nhóm</label>
+                                        <input type="text" class="form-control jewelry-form-control" 
+                                               id="groupCode" name="code"
+                                               placeholder="VD: METAL, STONE...">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="groupSequence" class="form-label fw-bold">Thứ tự hiển thị</label>
+                                        <input type="number" class="form-control jewelry-form-control" 
+                                               id="groupSequence" name="sequence" value="10" min="1"
+                                               placeholder="Số thứ tự">
+                                    </div>
+                                    
+                                    <div class="d-grid gap-2">
+                                        <button type="submit" class="btn btn-jewelry btn-jewelry-primary">
+                                            <i class="fas fa-save me-2"></i>
+                                            Lưu nhóm thuộc tính
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="resetGroupForm()">
+                                            <i class="fas fa-times me-2"></i>
+                                            Hủy / Tạo mới
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Table -->
+                    <div class="col-lg-7">
+                        <div class="jewelry-card">
+                            <div class="jewelry-card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">
+                                        <span class="gem-icon">
+                                            <i class="fas fa-list"></i>
+                                        </span>
+                                        Danh sách Nhóm Thuộc tính
+                                    </h5>
+                                    <div class="input-group" style="width: 300px;">
+                                        <input type="text" class="form-control" id="groupSearch" 
+                                               placeholder="Tìm kiếm nhóm...">
+                                        <button class="btn btn-outline-light" type="button" onclick="searchGroups()">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table jewelry-table mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Tên nhóm</th>
+                                            <th>Mã</th>
+                                            <th>Thứ tự</th>
+                                            <th>Số thuộc tính</th>
+                                            <th>Hành động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="groupsTableBody">
+                                        <!-- Dynamic content -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <!-- Pagination -->
+                            <div class="card-footer bg-light">
+                                <nav>
+                                    <ul class="pagination pagination-sm justify-content-center mb-0" id="groupsPagination">
+                                        <!-- Dynamic pagination -->
+                                    </ul>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Attributes -->
+            <div id="attributesContent" class="tab-content">
+                <div class="row">
+                    <!-- Left Column: Form -->
+                    <div class="col-lg-5 mb-4">
+                        <div class="jewelry-card">
+                            <div class="jewelry-card-header ruby-theme">
+                                <h5 class="mb-0">
+                                    <span class="gem-icon ruby-icon">
+                                        <i class="fas fa-tags"></i>
+                                    </span>
+                                    Tạo / Chỉnh sửa Thuộc tính
+                                </h5>
+                            </div>
+                            <div class="card-body p-4">
+                                <form id="attributeForm">
+                                    <input type="hidden" id="attributeId" name="id">
+                                    
+                                    <div class="row">
+                                        <div class="col-12 mb-3">
+                                            <label for="attributeName" class="form-label fw-bold">Tên thuộc tính *</label>
+                                            <input type="text" class="form-control jewelry-form-control" 
+                                                   id="attributeName" name="name" required
+                                                   placeholder="Ví dụ: Trọng lượng, Độ tinh khiết...">
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="attributeDisplayName" class="form-label fw-bold">Tên hiển thị</label>
+                                            <input type="text" class="form-control jewelry-form-control" 
+                                                   id="attributeDisplayName" name="display_name"
+                                                   placeholder="Tên để hiển thị">
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="attributeShortName" class="form-label fw-bold">Tên ngắn</label>
+                                            <input type="text" class="form-control jewelry-form-control" 
+                                                   id="attributeShortName" name="short_name"
+                                                   placeholder="Tên rút gọn">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="attributeFieldType" class="form-label fw-bold">Loại dữ liệu *</label>
+                                            <select class="form-select jewelry-form-control" 
+                                                    id="attributeFieldType" name="field_type" required>
+                                                <option value="">Chọn loại dữ liệu</option>
+                                                <option value="char">Văn bản (char)</option>
+                                                <option value="float">Số thập phân (float)</option>
+                                                <option value="integer">Số nguyên (integer)</option>
+                                                <option value="boolean">Đúng/Sai (boolean)</option>
+                                                <option value="date">Ngày tháng (date)</option>
+                                                <option value="selection">Lựa chọn (selection)</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="attributeGroup" class="form-label fw-bold">Nhóm thuộc tính</label>
+                                            <select class="form-select jewelry-form-control" 
+                                                    id="attributeGroup" name="group_id">
+                                                <option value="">Chọn nhóm</option>
+                                                <!-- Dynamic options -->
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="attributeUnit" class="form-label fw-bold">Đơn vị</label>
+                                            <input type="text" class="form-control jewelry-form-control" 
+                                                   id="attributeUnit" name="unit"
+                                                   placeholder="VD: gram, carat, mm...">
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="attributeCategory" class="form-label fw-bold">Danh mục</label>
+                                            <select class="form-select jewelry-form-control" 
+                                                    id="attributeCategory" name="category">
+                                                <option value="">Chọn danh mục</option>
+                                                <option value="technical">Kỹ thuật</option>
+                                                <option value="display">Hiển thị</option>
+                                                <option value="document">Tài liệu</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="attributeDefaultValue" class="form-label fw-bold">Giá trị mặc định</label>
+                                        <input type="text" class="form-control jewelry-form-control" 
+                                               id="attributeDefaultValue" name="default_value"
+                                               placeholder="Giá trị mặc định">
+                                    </div>
+                                    
+                                    <div class="mb-3" id="selectionOptionsDiv" style="display: none;">
+                                        <label for="attributeSelectionOptions" class="form-label fw-bold">Các lựa chọn</label>
+                                        <textarea class="form-control jewelry-form-control" 
+                                                  id="attributeSelectionOptions" name="selection_options" rows="3"
+                                                  placeholder="Nhập các lựa chọn, mỗi dòng một lựa chọn"></textarea>
+                                        <small class="text-muted">Chỉ dùng khi loại dữ liệu là "Lựa chọn"</small>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="attributeDescription" class="form-label fw-bold">Mô tả</label>
+                                        <textarea class="form-control jewelry-form-control" 
+                                                  id="attributeDescription" name="description" rows="2"
+                                                  placeholder="Mô tả chi tiết về thuộc tính"></textarea>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" 
+                                                       id="attributeRequired" name="required" checked>
+                                                <label class="form-check-label fw-bold" for="attributeRequired">
+                                                    Bắt buộc
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" 
+                                                       id="attributeEditable" name="editable" checked>
+                                                <label class="form-check-label fw-bold" for="attributeEditable">
+                                                    Có thể sửa
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" 
+                                                       id="attributeActive" name="active" checked>
+                                                <label class="form-check-label fw-bold" for="attributeActive">
+                                                    Hoạt động
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="d-grid gap-2">
+                                        <button type="submit" class="btn btn-jewelry btn-jewelry-danger">
+                                            <i class="fas fa-save me-2"></i>
+                                            Lưu thuộc tính
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="resetAttributeForm()">
+                                            <i class="fas fa-times me-2"></i>
+                                            Hủy / Tạo mới
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Table -->
+                    <div class="col-lg-7">
+                        <div class="jewelry-card">
+                            <div class="jewelry-card-header ruby-theme">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                                    <h5 class="mb-0">
+                                        <span class="gem-icon ruby-icon">
+                                            <i class="fas fa-list"></i>
+                                        </span>
+                                        Danh sách Thuộc tính
+                                    </h5>
+                                    <div class="d-flex gap-2 mt-2 mt-md-0">
+                                        <select class="form-select" id="attributeFilterGroup" style="width: 200px;">
+                                            <option value="">Tất cả nhóm</option>
+                                            <!-- Dynamic options -->
+                                        </select>
+                                        <div class="input-group" style="width: 250px;">
+                                            <input type="text" class="form-control" id="attributeSearch" 
+                                                   placeholder="Tìm kiếm thuộc tính...">
+                                            <button class="btn btn-outline-light" type="button" onclick="searchAttributes()">
+                                                <i class="fas fa-search"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table jewelry-table mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Tên thuộc tính</th>
+                                            <th>Loại dữ liệu</th>
+                                            <th>Nhóm</th>
+                                            <th>Đơn vị</th>
+                                            <th>Trạng thái</th>
+                                            <th>Hành động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="attributesTableBody">
+                                        <!-- Dynamic content -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <!-- Pagination -->
+                            <div class="card-footer bg-light">
+                                <nav>
+                                    <ul class="pagination pagination-sm justify-content-center mb-0" id="attributesPagination">
+                                        <!-- Dynamic pagination -->
+                                    </ul>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center p-4">
+                    <div class="spinner-border text-warning" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3 mb-2">Đang xử lý...</p>
+                    <small class="text-muted">Vui lòng chờ...</small>
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="forceHideLoading()">
+                            Hủy
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Group Modal -->
+    <div class="modal fade" id="groupModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header jewelry-card-header">
+                    <h5 class="modal-title">
+                        <span class="gem-icon">
+                            <i class="fas fa-layer-group"></i>
+                        </span>
+                        Chỉnh sửa Nhóm Thuộc tính
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="groupModalForm">
+                        <input type="hidden" id="modalGroupId" name="id">
+                        
+                        <div class="mb-3">
+                            <label for="modalGroupName" class="form-label fw-bold">Tên nhóm thuộc tính *</label>
+                            <input type="text" class="form-control jewelry-form-control" 
+                                   id="modalGroupName" name="name" required
+                                   placeholder="Ví dụ: Kim loại quý, Đá quý...">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="modalGroupCode" class="form-label fw-bold">Mã nhóm</label>
+                            <input type="text" class="form-control jewelry-form-control" 
+                                   id="modalGroupCode" name="code"
+                                   placeholder="VD: METAL, STONE...">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="modalGroupSequence" class="form-label fw-bold">Thứ tự hiển thị</label>
+                            <input type="number" class="form-control jewelry-form-control" 
+                                   id="modalGroupSequence" name="sequence" value="10" min="1"
+                                   placeholder="Số thứ tự">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-jewelry btn-jewelry-primary" onclick="saveGroupFromModal()">
+                        <i class="fas fa-save me-2"></i>
+                        Lưu thay đổi
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // ==================== GLOBAL VARIABLES ====================
+        let currentGroupPage = 1;
+        let currentAttributePage = 1;
+        let totalGroupPages = 1;
+        let totalAttributePages = 1;
+        let loadingModal;
+        
+        // ==================== INITIALIZATION ====================
+        document.addEventListener('DOMContentLoaded', function() {
+            loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+            
+            // Tab switching
+            document.querySelectorAll('input[name="mainTab"]').forEach(radio => {
+                radio.addEventListener('change', switchTab);
+            });
+            
+            // Form submissions
+            document.getElementById('groupForm').addEventListener('submit', handleGroupSubmit);
+            document.getElementById('attributeForm').addEventListener('submit', handleAttributeSubmit);
+            
+            // Field type change for attributes
+            document.getElementById('attributeFieldType').addEventListener('change', function() {
+                const selectionDiv = document.getElementById('selectionOptionsDiv');
+                if (this.value === 'selection') {
+                    selectionDiv.style.display = 'block';
+                } else {
+                    selectionDiv.style.display = 'none';
+                }
+            });
+            
+            // Load initial data
+            loadGroups();
+            loadGroupsForDropdown();
+        });
+        
+        // ==================== TAB SWITCHING ====================
+        function switchTab() {
+            const activeTab = document.querySelector('input[name="mainTab"]:checked').id;
+            
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            if (activeTab === 'groupsTab') {
+                document.getElementById('groupsContent').classList.add('active');
+                loadGroups();
+            } else if (activeTab === 'attributesTab') {
+                document.getElementById('attributesContent').classList.add('active');
+                loadAttributes();
+                loadGroupsForDropdown();
+            }
+        }
+        
+        // ==================== UTILITY FUNCTIONS ====================
+        function showLoading() {
+            loadingModal.show();
+        }
+        
+        function hideLoading() {
+            console.log('hideLoading() called');
+            try {
+                // Method 1: Use Bootstrap modal instance
+                if (loadingModal) {
+                    console.log('Hiding modal using Bootstrap instance');
+                    loadingModal.hide();
+                }
+                
+                // Method 2: Force hide bằng cách thao tác DOM trực tiếp
+                const modal = document.getElementById('loadingModal');
+                if (modal) {
+                    console.log('Force hiding modal using DOM manipulation');
+                    modal.classList.remove('show');
+                    modal.style.display = 'none';
+                    modal.setAttribute('aria-hidden', 'true');
+                    modal.removeAttribute('aria-modal');
+                    
+                    // Remove backdrop if exists
+                    const backdrops = document.querySelectorAll('.modal-backdrop');
+                    backdrops.forEach(backdrop => {
+                        console.log('Removing modal backdrop');
+                        backdrop.remove();
+                    });
+                    
+                    // Restore body scroll
+                    document.body.classList.remove('modal-open');
+                    document.body.style.paddingRight = '';
+                    document.body.style.overflow = '';
+                }
+                
+                console.log('Loading modal hidden successfully');
+            } catch (error) {
+                console.error('Error hiding loading modal:', error);
+                
+                // Ultimate fallback: brute force DOM cleanup
+                try {
+                    console.log('Attempting brute force modal cleanup');
+                    const modal = document.getElementById('loadingModal');
+                    if (modal) {
+                        modal.style.display = 'none !important';
+                        modal.classList.remove('show', 'fade');
+                        modal.setAttribute('aria-hidden', 'true');
+                        modal.removeAttribute('aria-modal');
+                    }
+                    
+                    // Remove all backdrops
+                    const backdrops = document.querySelectorAll('.modal-backdrop');
+                    backdrops.forEach(backdrop => backdrop.remove());
+                    
+                    // Clean up body
+                    document.body.classList.remove('modal-open');
+                    document.body.style.cssText = '';
+                    
+                    console.log('Brute force cleanup completed');
+                } catch (fallbackError) {
+                    console.error('Even brute force cleanup failed:', fallbackError);
+                }
+            }
+        }
+        
+        function forceHideLoading() {
+            console.log('forceHideLoading() called by user');
+            hideLoading();
+            showAlert('Đã hủy quá trình xử lý', 'info');
+        }
+        
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x`;
+            alertDiv.style.zIndex = '9999';
+            alertDiv.style.marginTop = '20px';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.parentNode.removeChild(alertDiv);
+                }
+            }, 5000);
+        }
+        
+        // ==================== ATTRIBUTE GROUPS FUNCTIONS ====================
+        async function loadGroups(page = 1, search = '') {
+            try {
+                showLoading();
+                const response = await fetch(`/api/attribute-groups?page=${page}&limit=10&search=${encodeURIComponent(search)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayGroups(data.data);
+                    updateGroupsPagination(page, Math.ceil(data.total / 10));
+                    currentGroupPage = page;
+                } else {
+                    showAlert('Lỗi khi tải danh sách nhóm thuộc tính', 'danger');
+                }
+            } catch (error) {
+                console.error('Error loading groups:', error);
+                showAlert('Lỗi kết nối khi tải danh sách nhóm thuộc tính', 'danger');
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        function displayGroups(groups) {
+            const tbody = document.getElementById('groupsTableBody');
+            tbody.innerHTML = '';
+            
+            if (groups.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center">Chưa có nhóm thuộc tính nào</td></tr>';
+                return;
+            }
+            
+            groups.forEach(group => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${group.id}</td>
+                    <td class="fw-bold">${group.name || ''}</td>
+                    <td><code>${group.code || ''}</code></td>
+                    <td><span class="badge bg-info">${group.sequence || 10}</span></td>
+                    <td><span class="badge bg-success">${group.attribute_count || 0}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editGroup(${group.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteGroup(${group.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        function updateGroupsPagination(currentPage, totalPages) {
+            const pagination = document.getElementById('groupsPagination');
+            pagination.innerHTML = '';
+            
+            totalGroupPages = totalPages;
+            
+            // Previous button
+            const prevDisabled = currentPage === 1 ? 'disabled' : '';
+            pagination.innerHTML += `
+                <li class="page-item ${prevDisabled}">
+                    <a class="page-link" href="#" onclick="loadGroups(${currentPage - 1})">Trước</a>
+                </li>
+            `;
+            
+            // Page numbers
+            for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+                const active = i === currentPage ? 'active' : '';
+                pagination.innerHTML += `
+                    <li class="page-item ${active}">
+                        <a class="page-link" href="#" onclick="loadGroups(${i})">${i}</a>
+                    </li>
+                `;
+            }
+            
+            // Next button
+            const nextDisabled = currentPage === totalPages ? 'disabled' : '';
+            pagination.innerHTML += `
+                <li class="page-item ${nextDisabled}">
+                    <a class="page-link" href="#" onclick="loadGroups(${currentPage + 1})">Sau</a>
+                </li>
+            `;
+        }
+        
+        async function handleGroupSubmit(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const groupData = Object.fromEntries(formData.entries());
+            
+            // Convert sequence to number
+            if (groupData.sequence) {
+                groupData.sequence = parseInt(groupData.sequence);
+            }
+            
+            // Remove empty values
+            Object.keys(groupData).forEach(key => {
+                if (groupData[key] === '' || groupData[key] === null) {
+                    delete groupData[key];
+                }
+            });
+            
+            try {
+                showLoading();
+                const isEdit = groupData.id && groupData.id !== '';
+                const url = isEdit ? `/api/attribute-groups/${groupData.id}` : '/api/attribute-groups';
+                const method = isEdit ? 'PUT' : 'POST';
+                
+                // Remove id from data for create/update
+                if (groupData.id) {
+                    delete groupData.id;
+                }
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(groupData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert(data.message || (isEdit ? 'Cập nhật thành công' : 'Tạo nhóm thuộc tính thành công'), 'success');
+                    resetGroupForm();
+                    loadGroups(currentGroupPage);
+                    loadGroupsForDropdown(); // Refresh dropdown
+                } else {
+                    showAlert('Lỗi: ' + (data.detail || 'Không thể lưu nhóm thuộc tính'), 'danger');
+                }
+            } catch (error) {
+                console.error('Error submitting group:', error);
+                showAlert('Lỗi kết nối khi lưu nhóm thuộc tính', 'danger');
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        async function editGroup(groupId) {
+            console.log('editGroup called with ID:', groupId);
+            
+            let forceHideTimeout = null;
+            let requestTimeoutId = null;
+            let controller = null;
+            
+            try {
+                // Đảm bảo modal được hiển thị
+                showLoading();
+                console.log('Loading modal shown');
+                
+                // Force hide modal after timeout với multiple fallbacks
+                forceHideTimeout = setTimeout(() => {
+                    console.log('Force hiding modal after 12 seconds');
+                    hideLoading();
+                    showAlert('Timeout: Quá trình xử lý mất quá nhiều thời gian', 'warning');
+                }, 12000);
+                
+                // Add timeout để tránh hang mãi mãi
+                controller = new AbortController();
+                requestTimeoutId = setTimeout(() => {
+                    console.log('Request timeout - aborting');
+                    if (controller) {
+                        controller.abort();
+                    }
+                }, 6000); // 6 second timeout (ngắn hơn)
+                
+                console.log('Making fetch request to:', `/api/attribute-groups/${groupId}`);
+                const response = await fetch(`/api/attribute-groups/${groupId}`, {
+                    signal: controller.signal,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                // Clear request timeout nếu response thành công
+                if (requestTimeoutId) {
+                    clearTimeout(requestTimeoutId);
+                    requestTimeoutId = null;
+                }
+                
+                console.log('Response received:', response.status, response.statusText);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                if (data.success && data.data) {
+                    const group = data.data;
+                    console.log('Loading group data into form:', group);
+                    
+                    // Load thông tin vào form chính
+                    document.getElementById('groupId').value = group.id || '';
+                    document.getElementById('groupName').value = group.name || '';
+                    document.getElementById('groupCode').value = group.code || '';
+                    document.getElementById('groupSequence').value = group.sequence || 10;
+                    
+                    // Cập nhật tiêu đề form
+                    document.getElementById('groupFormTitle').innerHTML = `
+                        <span class="gem-icon">
+                            <i class="fas fa-edit"></i>
+                        </span>
+                        Chỉnh sửa Nhóm Thuộc tính: ${group.name || 'Không có tên'}
+                    `;
+                    
+                    // Scroll to form để user thấy
+                    document.getElementById('groupForm').scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'start' 
+                    });
+                    
+                    // Focus vào field đầu tiên sau khi modal đã ẩn
+                    setTimeout(() => {
+                        const groupNameInput = document.getElementById('groupName');
+                        if (groupNameInput) {
+                            groupNameInput.focus();
+                        }
+                    }, 500);
+                    
+                    console.log('Form populated successfully');
+                    showAlert('Đã tải thông tin nhóm thuộc tính thành công', 'success');
+                } else {
+                    console.error('API returned error or no data:', data);
+                    showAlert('Lỗi: Không tìm thấy thông tin nhóm thuộc tính', 'danger');
+                }
+            } catch (error) {
+                console.error('Error editing group:', error);
+                if (error.name === 'AbortError') {
+                    showAlert('Timeout: Server không phản hồi trong 6 giây. Vui lòng thử lại.', 'warning');
+                } else if (error.message.includes('Failed to fetch')) {
+                    showAlert('Lỗi kết nối: Không thể kết nối đến server.', 'danger');
+                } else {
+                    showAlert('Lỗi: ' + error.message, 'danger');
+                }
+            } finally {
+                console.log('editGroup finally block - clearing timeouts and hiding loading');
+                
+                // Clear all timeouts
+                if (forceHideTimeout) {
+                    clearTimeout(forceHideTimeout);
+                    forceHideTimeout = null;
+                }
+                if (requestTimeoutId) {
+                    clearTimeout(requestTimeoutId);
+                    requestTimeoutId = null;
+                }
+                
+                // Force hide loading với multiple attempts
+                try {
+                    hideLoading();
+                } catch (hideError) {
+                    console.error('Error hiding loading modal:', hideError);
+                    // Fallback: force hide bằng DOM manipulation
+                    const modal = document.getElementById('loadingModal');
+                    if (modal) {
+                        modal.style.display = 'none';
+                        modal.classList.remove('show');
+                    }
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+                    document.body.classList.remove('modal-open');
+                    document.body.style.paddingRight = '';
+                }
+                
+                console.log('Loading modal hiding completed');
+            }
+        }
+        
+        async function saveGroupFromModal() {
+            const formData = new FormData(document.getElementById('groupModalForm'));
+            const groupData = Object.fromEntries(formData.entries());
+            
+            // Convert sequence to number
+            if (groupData.sequence) {
+                groupData.sequence = parseInt(groupData.sequence);
+            }
+            
+            // Remove empty values
+            Object.keys(groupData).forEach(key => {
+                if (groupData[key] === '' || groupData[key] === null) {
+                    delete groupData[key];
+                }
+            });
+            
+            try {
+                showLoading();
+                const isEdit = groupData.id && groupData.id !== '';
+                const url = isEdit ? `/api/attribute-groups/${groupData.id}` : '/api/attribute-groups';
+                const method = isEdit ? 'PUT' : 'POST';
+                
+                // Remove id from data for create/update
+                if (groupData.id) {
+                    delete groupData.id;
+                }
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(groupData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert(data.message || 'Cập nhật nhóm thuộc tính thành công', 'success');
+                    loadGroups(currentGroupPage);
+                    loadGroupsForDropdown(); // Refresh dropdown
+                    
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('groupModal'));
+                    if (modal) {
+                        modal.hide();
+                    }
+                } else {
+                    showAlert('Lỗi: ' + (data.detail || 'Không thể lưu nhóm thuộc tính'), 'danger');
+                }
+            } catch (error) {
+                console.error('Error saving group:', error);
+                showAlert('Lỗi kết nối khi lưu nhóm thuộc tính', 'danger');
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        async function deleteGroup(groupId) {
+            if (!confirm('Bạn có chắc muốn xóa nhóm thuộc tính này?')) return;
+            
+            try {
+                showLoading();
+                const response = await fetch(`/api/attribute-groups/${groupId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert(data.message || 'Xóa nhóm thuộc tính thành công', 'success');
+                    loadGroups(currentGroupPage);
+                    loadGroupsForDropdown(); // Refresh dropdown
+                } else {
+                    showAlert('Lỗi: ' + (data.detail || 'Không thể xóa nhóm thuộc tính'), 'danger');
+                }
+            } catch (error) {
+                console.error('Error deleting group:', error);
+                showAlert('Lỗi kết nối khi xóa nhóm thuộc tính', 'danger');
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        function resetGroupForm() {
+            document.getElementById('groupForm').reset();
+            document.getElementById('groupId').value = '';
+            document.getElementById('groupSequence').value = '10';
+            
+            // Reset tiêu đề về chế độ tạo mới
+            document.getElementById('groupFormTitle').innerHTML = `
+                <span class="gem-icon">
+                    <i class="fas fa-plus-circle"></i>
+                </span>
+                Tạo Nhóm Thuộc tính
+            `;
+        }
+        
+        function searchGroups() {
+            const searchTerm = document.getElementById('groupSearch').value;
+            loadGroups(1, searchTerm);
+        }
+        
+        // ==================== ATTRIBUTES FUNCTIONS ====================
+        async function loadAttributes(page = 1, search = '', groupId = '') {
+            try {
+                showLoading();
+                let url = `/api/attributes?page=${page}&limit=10&search=${encodeURIComponent(search)}`;
+                if (groupId) {
+                    url += `&group_id=${groupId}`;
+                }
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayAttributes(data.data);
+                    updateAttributesPagination(page, Math.ceil(data.total / 10));
+                    currentAttributePage = page;
+                } else {
+                    showAlert('Lỗi khi tải danh sách thuộc tính', 'danger');
+                }
+            } catch (error) {
+                console.error('Error loading attributes:', error);
+                showAlert('Lỗi kết nối khi tải danh sách thuộc tính', 'danger');
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        function displayAttributes(attributes) {
+            const tbody = document.getElementById('attributesTableBody');
+            tbody.innerHTML = '';
+            
+            if (attributes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center">Chưa có thuộc tính nào</td></tr>';
+                return;
+            }
+            
+            attributes.forEach(attr => {
+                const fieldTypeBadge = getFieldTypeBadge(attr.field_type);
+                const statusBadge = attr.active ? '<span class="badge bg-success">Hoạt động</span>' : '<span class="badge bg-secondary">Ngừng</span>';
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${attr.id}</td>
+                    <td class="fw-bold">${attr.display_name || attr.name || ''}</td>
+                    <td>${fieldTypeBadge}</td>
+                    <td><span class="badge bg-info">${attr.group_name || 'Chưa phân nhóm'}</span></td>
+                    <td>${attr.unit || '-'}</td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editAttribute(${attr.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteAttribute(${attr.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        function getFieldTypeBadge(fieldType) {
+            const badges = {
+                'char': '<span class="field-type-badge badge-char">Văn bản</span>',
+                'float': '<span class="field-type-badge badge-float">Số thập phân</span>',
+                'integer': '<span class="field-type-badge badge-integer">Số nguyên</span>',
+                'boolean': '<span class="field-type-badge badge-boolean">Đúng/Sai</span>',
+                'date': '<span class="field-type-badge badge-date">Ngày tháng</span>',
+                'selection': '<span class="field-type-badge badge-selection">Lựa chọn</span>'
+            };
+            return badges[fieldType] || `<span class="field-type-badge">${fieldType}</span>`;
+        }
+        
+        function updateAttributesPagination(currentPage, totalPages) {
+            const pagination = document.getElementById('attributesPagination');
+            pagination.innerHTML = '';
+            
+            totalAttributePages = totalPages;
+            
+            // Previous button
+            const prevDisabled = currentPage === 1 ? 'disabled' : '';
+            pagination.innerHTML += `
+                <li class="page-item ${prevDisabled}">
+                    <a class="page-link" href="#" onclick="loadAttributes(${currentPage - 1})">Trước</a>
+                </li>
+            `;
+            
+            // Page numbers
+            for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+                const active = i === currentPage ? 'active' : '';
+                pagination.innerHTML += `
+                    <li class="page-item ${active}">
+                        <a class="page-link" href="#" onclick="loadAttributes(${i})">${i}</a>
+                    </li>
+                `;
+            }
+            
+            // Next button
+            const nextDisabled = currentPage === totalPages ? 'disabled' : '';
+            pagination.innerHTML += `
+                <li class="page-item ${nextDisabled}">
+                    <a class="page-link" href="#" onclick="loadAttributes(${currentPage + 1})">Sau</a>
+                </li>
+            `;
+        }
+        
+        async function handleAttributeSubmit(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const attributeData = Object.fromEntries(formData.entries());
+            
+            // Convert boolean fields
+            attributeData.required = document.getElementById('attributeRequired').checked;
+            attributeData.editable = document.getElementById('attributeEditable').checked;
+            attributeData.active = document.getElementById('attributeActive').checked;
+            
+            // Convert group_id to number
+            if (attributeData.group_id && attributeData.group_id !== '') {
+                attributeData.group_id = parseInt(attributeData.group_id);
+            } else {
+                delete attributeData.group_id;
+            }
+            
+            // Remove empty values
+            Object.keys(attributeData).forEach(key => {
+                if (attributeData[key] === '' || attributeData[key] === null) {
+                    delete attributeData[key];
+                }
+            });
+            
+            try {
+                showLoading();
+                const isEdit = attributeData.id && attributeData.id !== '';
+                const url = isEdit ? `/api/attributes/${attributeData.id}` : '/api/attributes';
+                const method = isEdit ? 'PUT' : 'POST';
+                
+                // Remove id from data for create/update
+                if (attributeData.id) {
+                    delete attributeData.id;
+                }
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(attributeData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert(data.message || (isEdit ? 'Cập nhật thành công' : 'Tạo thuộc tính thành công'), 'success');
+                    resetAttributeForm();
+                    loadAttributes(currentAttributePage);
+                } else {
+                    showAlert('Lỗi: ' + (data.detail || 'Không thể lưu thuộc tính'), 'danger');
+                }
+            } catch (error) {
+                console.error('Error submitting attribute:', error);
+                showAlert('Lỗi kết nối khi lưu thuộc tính', 'danger');
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        async function editAttribute(attributeId) {
+            try {
+                showLoading();
+                const response = await fetch(`/api/attributes/${attributeId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const attr = data.data;
+                    document.getElementById('attributeId').value = attr.id;
+                    document.getElementById('attributeName').value = attr.name || '';
+                    document.getElementById('attributeDisplayName').value = attr.display_name || '';
+                    document.getElementById('attributeShortName').value = attr.short_name || '';
+                    document.getElementById('attributeFieldType').value = attr.field_type || '';
+                    document.getElementById('attributeGroup').value = attr.group_id ? attr.group_id[0] : '';
+                    document.getElementById('attributeUnit').value = attr.unit || '';
+                    document.getElementById('attributeCategory').value = attr.category || '';
+                    document.getElementById('attributeDefaultValue').value = attr.default_value || '';
+                    document.getElementById('attributeSelectionOptions').value = attr.selection_options || '';
+                    document.getElementById('attributeDescription').value = attr.description || '';
+                    document.getElementById('attributeRequired').checked = attr.required || false;
+                    document.getElementById('attributeEditable').checked = attr.editable !== false;
+                    document.getElementById('attributeActive').checked = attr.active !== false;
+                    
+                    // Show/hide selection options based on field type
+                    const selectionDiv = document.getElementById('selectionOptionsDiv');
+                    if (attr.field_type === 'selection') {
+                        selectionDiv.style.display = 'block';
+                    } else {
+                        selectionDiv.style.display = 'none';
+                    }
+                } else {
+                    showAlert('Lỗi khi tải thông tin thuộc tính', 'danger');
+                }
+            } catch (error) {
+                console.error('Error editing attribute:', error);
+                showAlert('Lỗi kết nối khi tải thông tin thuộc tính', 'danger');
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        async function deleteAttribute(attributeId) {
+            if (!confirm('Bạn có chắc muốn xóa thuộc tính này?')) return;
+            
+            try {
+                showLoading();
+                const response = await fetch(`/api/attributes/${attributeId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert(data.message || 'Xóa thuộc tính thành công', 'success');
+                    loadAttributes(currentAttributePage);
+                } else {
+                    showAlert('Lỗi: ' + (data.detail || 'Không thể xóa thuộc tính'), 'danger');
+                }
+            } catch (error) {
+                console.error('Error deleting attribute:', error);
+                showAlert('Lỗi kết nối khi xóa thuộc tính', 'danger');
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        function resetAttributeForm() {
+            document.getElementById('attributeForm').reset();
+            document.getElementById('attributeId').value = '';
+            document.getElementById('attributeRequired').checked = false;
+            document.getElementById('attributeEditable').checked = true;
+            document.getElementById('attributeActive').checked = true;
+            document.getElementById('selectionOptionsDiv').style.display = 'none';
+        }
+        
+        function searchAttributes() {
+            const searchTerm = document.getElementById('attributeSearch').value;
+            const groupFilter = document.getElementById('attributeFilterGroup').value;
+            loadAttributes(1, searchTerm, groupFilter);
+        }
+        
+        // ==================== LOAD GROUPS FOR DROPDOWN ====================
+        async function loadGroupsForDropdown() {
+            try {
+                const response = await fetch('/api/attribute-groups?limit=100');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const attributeGroupSelect = document.getElementById('attributeGroup');
+                    const filterGroupSelect = document.getElementById('attributeFilterGroup');
+                    
+                    // Clear existing options (keep first option)
+                    attributeGroupSelect.innerHTML = '<option value="">Chọn nhóm</option>';
+                    filterGroupSelect.innerHTML = '<option value="">Tất cả nhóm</option>';
+                    
+                    // Add group options
+                    data.data.forEach(group => {
+                        const option1 = document.createElement('option');
+                        option1.value = group.id;
+                        option1.textContent = group.name;
+                        attributeGroupSelect.appendChild(option1);
+                        
+                        const option2 = document.createElement('option');
+                        option2.value = group.id;
+                        option2.textContent = group.name;
+                        filterGroupSelect.appendChild(option2);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading groups for dropdown:', error);
+            }
+        }
+        
+        // Add event listener for filter change
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for DOM to be ready, then add event listener
+            setTimeout(() => {
+                const filterSelect = document.getElementById('attributeFilterGroup');
+                if (filterSelect) {
+                    filterSelect.addEventListener('change', searchAttributes);
+                }
+            }, 100);
+        });
+    </script>
+</body>
+</html>

@@ -3,7 +3,7 @@ FastAPI Application - Migrated from Flask
 Odoo Product CRUD Client với Real-time Pricing
 """
 from fastapi import FastAPI, HTTPException, Request, BackgroundTasks
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, StreamingResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,13 +13,115 @@ import asyncio
 import json
 from datetime import datetime
 from typing import List, Optional, Dict, Set
+from decimal import Decimal
 import uvicorn
 
 from odoo_client import odoo_client
 from config import FASTAPI_CONFIG
 from models import *
+from product_template_models import *
+# Xóa import không cần thiết
+# from gold_attribute_client_models import *
+from gold_attribute_odoo_integration import gold_attribute_service
 from pricing_models import PricingSnapshot, PricingRequest, PricingResponse, OfflineStrategy
 from kafka_pricing_consumer import KafkaPricingConsumer
+
+# Helper functions
+async def _filter_products_by_gold_attributes(filters: Dict[int, str]) -> List[int]:
+    """Filter products theo gold attributes
+    Args:
+        filters: {gold_attribute_id: value}
+    Returns:
+        List product template IDs hoặc None nếu không filter
+    """
+    try:
+        matching_product_ids = set()
+        first_filter = True
+        
+        for gold_attribute_id, expected_value in filters.items():
+            if not expected_value or expected_value.strip() == "":
+                continue
+                
+            # Lấy product.attribute tương ứng
+            gold_attr = odoo_client.read('gold.attribute.line', [gold_attribute_id], ['name'])
+            if not gold_attr:
+                continue
+                
+            product_attr_name = f"gold_{gold_attr[0]['name']}"
+            product_attrs = odoo_client.search('product.attribute', [['name', '=', product_attr_name]])
+            
+            if not product_attrs:
+                # Nếu không có product.attribute nào, nghĩa là chưa có product nào có attribute này
+                return []
+                
+            product_attr_id = product_attrs[0]
+            
+            # Tìm product.attribute.value có value match
+            attr_values = odoo_client.search('product.attribute.value', [
+                ['attribute_id', '=', product_attr_id],
+                ['name', 'ilike', expected_value]
+            ])
+            
+            if not attr_values:
+                # Không có value nào match
+                return []
+            
+            # Tìm product.template.attribute.line có value này
+            attr_lines = odoo_client.search_read(
+                'product.template.attribute.line',
+                [
+                    ['attribute_id', '=', product_attr_id],
+                    ['value_ids', 'in', attr_values]
+                ],
+                ['product_tmpl_id']
+            )
+            
+            current_product_ids = set(line['product_tmpl_id'][0] for line in attr_lines)
+            
+            if first_filter:
+                matching_product_ids = current_product_ids
+                first_filter = False
+            else:
+                # Intersection - chỉ giữ products có tất cả attributes
+                matching_product_ids = matching_product_ids.intersection(current_product_ids)
+            
+            # Nếu không có intersection, return ngay
+            if not matching_product_ids:
+                return []
+        
+        return list(matching_product_ids)
+        
+    except Exception as e:
+        print(f"Error filtering products by gold attributes: {e}")
+        return None
+from gold_models import (
+    GoldAttributeCreate, 
+    GoldAttributeUpdate, 
+    GoldAttributeResponse,
+    APIResponse as GoldAPIResponse
+)
+# Attribute Management Models
+from attribute_management_models import (
+    # Nhóm thuộc tính
+    AttributeGroupBase, AttributeGroupCreate, AttributeGroupUpdate, AttributeGroupResponse,
+    # Thuộc tính
+    AttributeBase, AttributeCreate, AttributeUpdate, AttributeResponse,
+    # Mã mẫu sản phẩm
+    ProductTemplateBase, ProductTemplateCreate, ProductTemplateUpdate, ProductTemplateResponse,
+    # Models chung
+    APIResponse, PaginationParams, FilterParams, SelectOption, CategoryOption, UomOption,
+    # Bulk operations
+    BulkDeleteRequest, BulkUpdateRequest, ImportRequest
+)
+# Product Template Models mới
+from product_template_models import (
+    ProductTemplateCreate as PTCreate, ProductTemplateUpdate as PTUpdate, 
+    ProductTemplateResponse as PTResponse, ProductTemplateListResponse,
+    ProductTemplateFilter, ProductTemplateBulkAction, ProductTemplateWithAttributeSchema,
+    GoldAttributeValueCreate, GoldAttributeValueUpdate, GoldAttributeValueResponse,
+    GoldAttributeLineInfo, ProductTemplateStats, AttributeUsageStats,
+    ProductTemplateImport, ProductTemplateExport
+)
 import json
 from kafka import KafkaProducer
 
@@ -151,518 +253,17 @@ async def startup_event():
 # HTML ROUTES
 # ================================
 
+# Route chính - chuyển hướng đến trang quản lý
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
-    """Trang chủ"""
+async def root(request: Request):
+    """Trang chủ - hiển thị thông tin về hệ thống"""
     return templates.TemplateResponse("index.html", {"request": request})
 
-@app.get("/attributes", response_class=HTMLResponse)
-async def attributes_page(request: Request):
-    """Trang quản lý attributes"""
-    return templates.TemplateResponse("attributes.html", {"request": request})
-
-@app.get("/values", response_class=HTMLResponse)
-async def values_page(request: Request):
-    """Trang quản lý attribute values"""
-    return templates.TemplateResponse("values.html", {"request": request})
-
-@app.get("/categories", response_class=HTMLResponse)
-async def categories_page(request: Request):
-    """Trang quản lý categories"""
-    return templates.TemplateResponse("categories.html", {"request": request})
-
-@app.get("/templates", response_class=HTMLResponse)
-async def templates_page(request: Request):
-    """Trang quản lý product templates"""
-    return templates.TemplateResponse("templates.html", {"request": request})
-
-@app.get("/products", response_class=HTMLResponse)
-async def products_page(request: Request):
-    """Trang quản lý products"""
-    return templates.TemplateResponse("products.html", {"request": request})
-
-@app.get("/serials", response_class=HTMLResponse)
-async def serials_page(request: Request):
-    """Trang quản lý serial numbers"""
-    return templates.TemplateResponse("serials.html", {"request": request})
-
-@app.get("/pricing", response_class=HTMLResponse)
-async def pricing_page(request: Request):
-    """Trang demo real-time pricing"""
-    return templates.TemplateResponse("pricing.html", {"request": request})
-
-@app.get("/pricings", response_class=HTMLResponse)
-async def pricing_page_redirect(request: Request):
-    """Redirect /pricings to /pricing"""
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/pricing", status_code=301)
-
-@app.get("/rates", response_class=HTMLResponse)
-async def rates_page(request: Request):
-    """Trang quản lý tỷ giá real-time"""
-    return templates.TemplateResponse("rates.html", {"request": request})
-
-# ================================
-# API ROUTES - ATTRIBUTES
-# ================================
-
-@app.get("/api/attributes", response_model=APIResponse)
-async def get_attributes():
-    """Lấy danh sách product attributes"""
-    try:
-        attributes = odoo_client.search_read(
-            'product.attribute',
-            [],
-            ['id', 'name', 'display_type', 'sequence']
-        )
-        attributes.sort(key=lambda x: x['sequence'])
-        return APIResponse(success=True, data=attributes)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/attributes", response_model=APIResponse)
-async def create_attribute(attribute: AttributeCreate):
-    """Tạo product attribute mới"""
-    try:
-        attribute_id = odoo_client.create('product.attribute', attribute.dict())
-        return APIResponse(success=True, data={"id": attribute_id})
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.put("/api/attributes/{attribute_id}", response_model=APIResponse)
-async def update_attribute(attribute_id: int, attribute: AttributeUpdate):
-    """Cập nhật product attribute"""
-    try:
-        update_data = {k: v for k, v in attribute.dict().items() if v is not None}
-        success = odoo_client.write('product.attribute', attribute_id, update_data)
-        return APIResponse(success=success)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.delete("/api/attributes/{attribute_id}", response_model=APIResponse)
-async def delete_attribute(attribute_id: int):
-    """Xóa product attribute"""
-    try:
-        success = odoo_client.unlink('product.attribute', attribute_id)
-        return APIResponse(success=success)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-# ================================
-# API ROUTES - ATTRIBUTE VALUES
-# ================================
-
-@app.get("/api/values", response_model=APIResponse)
-async def get_values():
-    """Lấy danh sách attribute values"""
-    try:
-        values = odoo_client.search_read(
-            'product.attribute.value',
-            [],
-            ['id', 'name', 'attribute_id', 'sequence']
-        )
-        values.sort(key=lambda x: (x['attribute_id'][1], x['sequence']))
-        return APIResponse(success=True, data=values)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/values", response_model=APIResponse)
-async def create_value(value: AttributeValueCreate):
-    """Tạo attribute value mới"""
-    try:
-        value_id = odoo_client.create('product.attribute.value', value.dict())
-        return APIResponse(success=True, data={"id": value_id})
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.put("/api/values/{value_id}", response_model=APIResponse)
-async def update_value(value_id: int, value: AttributeValueUpdate):
-    """Cập nhật attribute value"""
-    try:
-        update_data = {k: v for k, v in value.dict().items() if v is not None}
-        success = odoo_client.write('product.attribute.value', value_id, update_data)
-        return APIResponse(success=success)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.delete("/api/values/{value_id}", response_model=APIResponse)
-async def delete_value(value_id: int):
-    """Xóa attribute value"""
-    try:
-        success = odoo_client.unlink('product.attribute.value', value_id)
-        return APIResponse(success=success)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-# ================================
-# API ROUTES - CATEGORIES
-# ================================
-
-@app.get("/api/categories", response_model=APIResponse)
-async def get_categories():
-    """Lấy danh sách product categories"""
-    try:
-        categories = odoo_client.search_read(
-            'product.category',
-            [],
-            ['id', 'name', 'parent_id', 'sequence']
-        )
-        categories.sort(key=lambda x: (x.get('parent_id', [False, ''])[1], x['sequence']))
-        return APIResponse(success=True, data=categories)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/categories", response_model=APIResponse)  
-async def create_category(category: CategoryCreate):
-    """Tạo product category mới"""
-    try:
-        category_id = odoo_client.create('product.category', category.dict())
-        return APIResponse(success=True, data={"id": category_id})
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.put("/api/categories/{category_id}", response_model=APIResponse)
-async def update_category(category_id: int, category: CategoryUpdate):
-    """Cập nhật product category"""
-    try:
-        update_data = {k: v for k, v in category.dict().items() if v is not None}
-        success = odoo_client.write('product.category', category_id, update_data)
-        return APIResponse(success=success)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.delete("/api/categories/{category_id}", response_model=APIResponse)
-async def delete_category(category_id: int):
-    """Xóa product category"""
-    try:
-        success = odoo_client.unlink('product.category', category_id)
-        return APIResponse(success=success)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-# ================================
-# API ROUTES - TEMPLATES
-# ================================
-
-@app.get("/api/templates", response_model=APIResponse)
-async def get_templates():
-    """Lấy danh sách product templates"""
-    try:
-        templates = odoo_client.search_read(
-            'product.template',
-            [],
-            ['id', 'name', 'categ_id', 'list_price', 'standard_price', 'default_code', 'barcode']
-        )
-        templates.sort(key=lambda x: x['id'], reverse=True)
-        return APIResponse(success=True, data=templates)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/templates", response_model=APIResponse)
-async def create_template(template: TemplateCreate):
-    """Tạo product template mới với attributes"""
-    try:
-        # Tạo template data cơ bản
-        template_data = {
-            'name': template.name,
-            'categ_id': template.categ_id,
-            'list_price': template.list_price or 0,
-            'standard_price': template.standard_price or 0,
-        }
-        
-        if template.default_code:
-            template_data['default_code'] = template.default_code
-        if template.barcode:
-            template_data['barcode'] = template.barcode
-            
-        # Tạo template
-        template_id = odoo_client.create('product.template', template_data)
-        
-        # Xử lý attributes nếu có
-        if template.attribute_line_ids:
-            for attr_line in template.attribute_line_ids:
-                attr_id = attr_line['attribute_id']
-                value_ids = attr_line['value_ids']
-                
-                # Tạo attribute values nếu chưa có (text input)
-                if 'text_values' in attr_line:
-                    for text_value in attr_line['text_values']:
-                        if text_value.strip():
-                            value_id = odoo_client.create('product.attribute.value', {
-                                'name': text_value.strip(),
-                                'attribute_id': attr_id
-                            })
-                            value_ids.append(value_id)
-                
-                # Tạo attribute line
-                if value_ids:
-                    odoo_client.create('product.template.attribute.line', {
-                        'product_tmpl_id': template_id,
-                        'attribute_id': attr_id,
-                        'value_ids': [(6, 0, value_ids)]
-                    })
-        
-        return APIResponse(success=True, data={"id": template_id})
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/templates/{template_id}/attributes", response_model=APIResponse)
-async def get_template_attributes(template_id: int):
-    """Lấy attributes của template"""
-    try:
-        attribute_lines = odoo_client.search_read(
-            'product.template.attribute.line',
-            [['product_tmpl_id', '=', template_id]],
-            ['id', 'attribute_id', 'value_ids']
-        )
-        
-        for line in attribute_lines:
-            if line['value_ids']:
-                values = odoo_client.search_read(
-                    'product.attribute.value',
-                    [['id', 'in', line['value_ids']]],
-                    ['id', 'name', 'sequence']
-                )
-                line['values'] = sorted(values, key=lambda x: x['sequence'])
-            else:
-                line['values'] = []
-                
-        return APIResponse(success=True, data=attribute_lines)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.put("/api/templates/{template_id}", response_model=APIResponse)
-async def update_template(template_id: int, template: TemplateUpdate):
-    """Cập nhật product template"""
-    try:
-        update_data = {k: v for k, v in template.dict().items() if v is not None}
-        success = odoo_client.write('product.template', template_id, update_data)
-        return APIResponse(success=success)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.delete("/api/templates/{template_id}", response_model=APIResponse)
-async def delete_template(template_id: int):
-    """Xóa product template"""
-    try:
-        success = odoo_client.unlink('product.template', template_id)
-        return APIResponse(success=success)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/templates/suggest", response_model=APIResponse)
-async def suggest_templates(request: Request):
-    """Gợi ý templates tương đồng dựa trên category và tên"""
-    try:
-        data = await request.json()
-        domain = []
-        
-        if data.get('categ_id'):
-            domain.append(['categ_id', '=', data['categ_id']])
-        if data.get('name'):
-            domain.append(['name', 'ilike', data['name']])
-            
-        templates = odoo_client.search_read(
-            'product.template',
-            domain,
-            ['id', 'name', 'categ_id', 'list_price', 'standard_price', 'default_code', 'barcode']
-        )
-        return APIResponse(success=True, data=templates)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-# ================================
-# API ROUTES - PRODUCTS
-# ================================
-
-@app.get("/api/products", response_model=APIResponse)
-async def get_products():
-    """Lấy danh sách products"""
-    try:
-        products = odoo_client.search_read(
-            'product.product',
-            [],
-            ['id', 'name', 'product_tmpl_id', 'default_code', 'barcode', 'active']
-        )
-        products.sort(key=lambda x: x['id'], reverse=True)
-        return APIResponse(success=True, data=products)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/products", response_model=APIResponse)
-async def create_product(product: ProductCreate):
-    """Tạo product mới với auto-generation mã sản phẩm"""
-    try:
-        template = odoo_client.search_read(
-            'product.template',
-            [['id', '=', product.product_tmpl_id]],
-            ['default_code', 'name']
-        )
-        
-        if not template:
-            raise HTTPException(status_code=404, detail="Template không tồn tại")
-        
-        template_info = template[0]
-        
-        # Auto-generate code nếu chưa có
-        if not product.default_code:
-            code = template_info.get('default_code', template_info.get('name', 'PRODUCT'))
-            
-            if product.attribute_value_ids:
-                for value_id in product.attribute_value_ids:
-                    value = odoo_client.search_read(
-                        'product.attribute.value',
-                        [['id', '=', value_id]],
-                        ['name']
-                    )
-                    if value:
-                        value_code = generate_attribute_code(value[0]['name'])
-                        code += '-' + value_code
-            
-            product.default_code = code
-        
-        product_data = {
-            'name': product.name,
-            'product_tmpl_id': product.product_tmpl_id,
-            'default_code': product.default_code,
-        }
-        
-        if product.barcode:
-            product_data['barcode'] = product.barcode
-        
-        product_id = odoo_client.create('product.product', product_data)
-        
-        # Gán attribute values nếu có
-        if product.attribute_value_ids and product_id:
-            for value_id in product.attribute_value_ids:
-                odoo_client.create('product.template.attribute.value', {
-                    'product_tmpl_id': product.product_tmpl_id,
-                    'attribute_value_id': value_id,
-                    'ptav_product_variant_ids': [(6, 0, [product_id])]
-                })
-        
-        return APIResponse(success=True, data={"id": product_id, "code": product.default_code})
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.put("/api/products/{product_id}", response_model=APIResponse)
-async def update_product(product_id: int, product: ProductUpdate):
-    """Cập nhật product"""
-    try:
-        update_data = {k: v for k, v in product.dict().items() if v is not None}
-        success = odoo_client.write('product.product', product_id, update_data)
-        return APIResponse(success=success)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.delete("/api/products/{product_id}", response_model=APIResponse)
-async def delete_product(product_id: int):
-    """Xóa product"""
-    try:
-        success = odoo_client.unlink('product.product', product_id)
-        return APIResponse(success=success)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/products/all-attributes", response_model=APIResponse)
-async def get_all_product_attributes():
-    """Lấy tất cả attributes có trong products để làm filter"""
-    try:
-        attributes = odoo_client.search_read(
-            'product.attribute',
-            [],
-            ['id', 'name', 'display_type']
-        )
-        
-        for attr in attributes:
-            values = odoo_client.search_read(
-                'product.attribute.value',
-                [['attribute_id', '=', attr['id']]],
-                ['id', 'name', 'sequence']
-            )
-            attr['values'] = sorted(values, key=lambda x: x['sequence'])
-        
-        return APIResponse(success=True, data=attributes)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-# ================================
-# API ROUTES - SERIALS
-# ================================
-
-@app.get("/api/serials", response_model=APIResponse)
-async def get_serials():
-    """Lấy danh sách serial numbers"""
-    try:
-        serials = odoo_client.search_read(
-            'stock.lot',
-            [],
-            ['id', 'name', 'product_id', 'company_id']
-        )
-        serials.sort(key=lambda x: x['id'], reverse=True)
-        return APIResponse(success=True, data=serials)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/serials", response_model=APIResponse)
-async def create_serial(serial: SerialCreate):
-    """Tạo serial number mới"""
-    try:
-        serial_id = odoo_client.create('stock.lot', serial.dict())
-        return APIResponse(success=True, data={"id": serial_id})
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.put("/api/serials/{serial_id}", response_model=APIResponse)
-async def update_serial(serial_id: int, serial: SerialUpdate):
-    """Cập nhật serial number"""
-    try:
-        update_data = {k: v for k, v in serial.dict().items() if v is not None}
-        success = odoo_client.write('stock.lot', serial_id, update_data)
-        return APIResponse(success=success)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.delete("/api/serials/{serial_id}", response_model=APIResponse)
-async def delete_serial(serial_id: int):
-    """Xóa serial number"""
-    try:
-        success = odoo_client.unlink('stock.lot', serial_id)
-        return APIResponse(success=success)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-# ================================
-# UTILITY FUNCTIONS
-# ================================
-
-def generate_attribute_code(name):
-    """Tạo mã từ tên attribute"""
-    name = name.strip().upper()
-    
-    vietnamese_map = {
-        'Á': 'A', 'À': 'A', 'Ã': 'A', 'Ạ': 'A', 'Ả': 'A',
-        'Ă': 'A', 'Ắ': 'A', 'Ằ': 'A', 'Ẵ': 'A', 'Ặ': 'A', 'Ẳ': 'A',
-        'Â': 'A', 'Ấ': 'A', 'Ầ': 'A', 'Ẫ': 'A', 'Ậ': 'A', 'Ẩ': 'A',
-        'É': 'E', 'È': 'E', 'Ẽ': 'E', 'Ẹ': 'E', 'Ẻ': 'E',
-        'Ê': 'E', 'Ế': 'E', 'Ề': 'E', 'Ễ': 'E', 'Ệ': 'E', 'Ể': 'E',
-        'Í': 'I', 'Ì': 'I', 'Ĩ': 'I', 'Ị': 'I', 'Ỉ': 'I',
-        'Ó': 'O', 'Ò': 'O', 'Õ': 'O', 'Ọ': 'O', 'Ỏ': 'O',
-        'Ô': 'O', 'Ố': 'O', 'Ồ': 'O', 'Ỗ': 'O', 'Ộ': 'O', 'Ổ': 'O',
-        'Ơ': 'O', 'Ớ': 'O', 'Ờ': 'O', 'Ỡ': 'O', 'Ợ': 'O', 'Ở': 'O',
-        'Ú': 'U', 'Ù': 'U', 'Ũ': 'U', 'Ụ': 'U', 'Ủ': 'U',
-        'Ư': 'U', 'Ứ': 'U', 'Ừ': 'U', 'Ữ': 'U', 'Ự': 'U', 'Ử': 'U',
-        'Ý': 'Y', 'Ỳ': 'Y', 'Ỹ': 'Y', 'Ỵ': 'Y', 'Ỷ': 'Y',
-        'Đ': 'D'
-    }
-    
-    for vn, en in vietnamese_map.items():
-        name = name.replace(vn, en)
-    
-    import re
-    name = re.sub(r'[^A-Z0-9]', '', name)
-    
-    return name[:10]
+# Route trang chủ phụ
+@app.get("/home", response_class=HTMLResponse) 
+async def home(request: Request):
+    """Trang chủ phụ"""
+    return templates.TemplateResponse("index.html", {"request": request})
 
 # ================================
 # REAL-TIME PRICING APIs
@@ -775,7 +376,8 @@ async def test_publish_pricing(background_tasks: BackgroundTasks):
         rate = Rate(
             material="gold", 
             rate=75500000,
-            rate_version=int(datetime.utcnow().timestamp() * 1000)
+            rate_version=int(datetime.utcnow().timestamp() * 1000),
+            timestamp=datetime.utcnow()
         )
         calculator.update_rate(rate)
         
@@ -857,6 +459,801 @@ async def get_current_rates():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi: {str(e)}")
 
+# ATTRIBUTE MANAGEMENT ROUTES 
+# =============================================================================
+
+# Route cho giao diện quản lý
+@app.get("/attribute-management", response_class=HTMLResponse)
+async def attribute_management(request: Request):
+    """Giao diện quản lý hoàn chỉnh cho nhóm thuộc tính và thuộc tính vàng"""
+    response = templates.TemplateResponse("attribute_management_complete.html", {"request": request})
+    # Thêm headers chống cache để đảm bảo UI mới được load
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+@app.get("/product-templates", response_class=HTMLResponse)
+async def product_templates_page(request: Request):
+    """Giao diện quản lý mã mẫu sản phẩm"""
+    response = templates.TemplateResponse("product_templates.html", {"request": request})
+    # Thêm headers chống cache
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+# =============================================================================
+# 1. API CRUD CHO NHÓM THUỘC TÍNH (product.template.attribute.group)
+# =============================================================================
+
+@app.get("/api/attribute-groups", response_model=APIResponse)
+async def get_attribute_groups(
+    page: int = 1, 
+    limit: int = 20, 
+    search: Optional[str] = None
+):
+    """Lấy danh sách nhóm thuộc tính"""
+    try:
+        domain = []
+        if search:
+            domain.append(['name', 'ilike', search])
+        
+        # Lấy dữ liệu với pagination - chỉ lấy field có trong model thực tế
+        offset = (page - 1) * limit
+        groups = odoo_client.search_read(
+            'product.template.attribute.group', 
+            domain, 
+            ['name', 'code', 'sequence', 'create_date', 'write_date'],
+            offset=offset,
+            limit=limit,
+            order='sequence,name'
+        )
+        
+        # Đếm tổng số bản ghi
+        total = odoo_client.search_count('product.template.attribute.group', domain)
+        
+        # Đếm số thuộc tính trong mỗi nhóm
+        for group in groups:
+            attr_count = odoo_client.search_count('gold.attribute.line', [['group_id', '=', group['id']]])
+            group['attribute_count'] = attr_count
+        
+        return APIResponse(success=True, data=groups, total=total)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/attribute-groups", response_model=APIResponse)
+async def create_attribute_group(group: AttributeGroupCreate):
+    """Tạo nhóm thuộc tính mới"""
+    try:
+        group_data = {k: v for k, v in group.dict().items() if v is not None}
+        group_id = odoo_client.create('product.template.attribute.group', group_data)
+        return APIResponse(success=True, data={"id": group_id}, message="Tạo nhóm thuộc tính thành công!")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/attribute-groups/{group_id}", response_model=APIResponse)
+async def get_attribute_group(group_id: int):
+    """Lấy thông tin nhóm thuộc tính theo ID"""
+    try:
+        group = odoo_client.read('product.template.attribute.group', [group_id], [
+            'name', 'code', 'sequence', 'create_date', 'write_date'
+        ])
+        if not group:
+            raise HTTPException(status_code=404, detail="Không tìm thấy nhóm thuộc tính")
+        
+        # Đếm số thuộc tính trong nhóm
+        attr_count = odoo_client.search_count('gold.attribute.line', [['group_id', '=', group_id]])
+        group[0]['attribute_count'] = attr_count
+        
+        return APIResponse(success=True, data=group[0])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/attribute-groups/{group_id}", response_model=APIResponse)
+async def update_attribute_group(group_id: int, group: AttributeGroupUpdate):
+    """Cập nhật nhóm thuộc tính"""
+    try:
+        group_data = {k: v for k, v in group.dict().items() if v is not None}
+        if not group_data:
+            raise HTTPException(status_code=400, detail="Không có dữ liệu để cập nhật")
+        
+        odoo_client.write('product.template.attribute.group', [group_id], group_data)
+        return APIResponse(success=True, message="Cập nhật nhóm thuộc tính thành công!")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/attribute-groups/{group_id}", response_model=APIResponse)
+async def delete_attribute_group(group_id: int):
+    """Xóa nhóm thuộc tính"""
+    try:
+        # Kiểm tra xem có thuộc tính nào đang sử dụng nhóm này không
+        attr_count = odoo_client.search_count('gold.attribute.line', [['group_id', '=', group_id]])
+        if attr_count > 0:
+            raise HTTPException(status_code=400, detail=f"Không thể xóa nhóm vì còn {attr_count} thuộc tính đang sử dụng")
+        
+        odoo_client.unlink('product.template.attribute.group', [group_id])
+        return APIResponse(success=True, message="Xóa nhóm thuộc tính thành công!")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# =============================================================================
+# 2. API CRUD CHO THUỘC TÍNH (gold.attribute.line)
+# =============================================================================
+
+@app.get("/api/attributes", response_model=APIResponse)
+async def get_attributes(
+    page: int = 1,
+    limit: int = 20,
+    search: Optional[str] = None,
+    group_id: Optional[int] = None,
+    field_type: Optional[str] = None,
+    active: Optional[bool] = None
+):
+    """Lấy danh sách thuộc tính"""
+    try:
+        domain = []
+        if search:
+            domain.append(['|', ['name', 'ilike', search], ['display_name', 'ilike', search]])
+        if group_id:
+            domain.append(['group_id', '=', group_id])
+        if field_type:
+            domain.append(['field_type', '=', field_type])
+        if active is not None:
+            domain.append(['active', '=', active])
+        
+        # Lấy dữ liệu với pagination
+        offset = (page - 1) * limit
+        attributes = odoo_client.search_read(
+            'gold.attribute.line', 
+            domain, 
+            ['name', 'display_name', 'short_name', 'field_type', 'group_id', 'required', 
+             'editable', 'active', 'default_value', 'description', 'unit',
+             'validation_regex', 'selection_options', 'category', 'create_date', 'write_date'],
+            offset=offset,
+            limit=limit,
+            order='group_id,name'
+        )
+        
+        # Lấy tên nhóm cho mỗi thuộc tính
+        group_ids = [attr['group_id'][0] for attr in attributes if attr.get('group_id')]
+        if group_ids:
+            groups = odoo_client.read('product.template.attribute.group', group_ids, ['name'])
+            group_dict = {g['id']: g['name'] for g in groups}
+            
+            for attr in attributes:
+                if attr.get('group_id'):
+                    attr['group_name'] = group_dict.get(attr['group_id'][0], '')
+                else:
+                    attr['group_name'] = ''
+        
+        # Đếm tổng số bản ghi
+        total = odoo_client.search_count('gold.attribute.line', domain)
+        
+        return APIResponse(success=True, data=attributes, total=total)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/attributes", response_model=APIResponse)
+async def create_attribute(attribute: AttributeCreate):
+    """Tạo thuộc tính mới"""
+    try:
+        attribute_data = {k: v for k, v in attribute.dict().items() if v is not None}
+        attribute_id = odoo_client.create('gold.attribute.line', attribute_data)
+        return APIResponse(success=True, data={"id": attribute_id}, message="Tạo thuộc tính thành công!")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/attributes/{attribute_id}", response_model=APIResponse)
+async def get_attribute(attribute_id: int):
+    """Lấy thông tin thuộc tính theo ID"""
+    try:
+        attribute = odoo_client.read('gold.attribute.line', [attribute_id], [
+            'name', 'display_name', 'short_name', 'field_type', 'group_id', 'required', 
+            'editable', 'active', 'default_value', 'description', 'unit',
+            'validation_regex', 'selection_options', 'category', 'create_date', 'write_date'
+        ])
+        if not attribute:
+            raise HTTPException(status_code=404, detail="Không tìm thấy thuộc tính")
+        
+        # Lấy tên nhóm
+        if attribute[0].get('group_id'):
+            group = odoo_client.read('product.template.attribute.group', [attribute[0]['group_id'][0]], ['name'])
+            attribute[0]['group_name'] = group[0]['name'] if group else ''
+        else:
+            attribute[0]['group_name'] = ''
+        
+        return APIResponse(success=True, data=attribute[0])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/gold-attributes/filter-options", response_model=APIResponse)
+async def get_gold_attributes_filter_options():
+    """Lấy danh sách gold attributes để làm filter options"""
+    try:
+        # Lấy tất cả gold attributes active
+        attributes, _ = gold_attribute_service.get_gold_attributes()
+        
+        filter_options = []
+        for attr in attributes:
+            if not attr.get('active', True):
+                continue
+                
+            # Lấy danh sách values có sẵn cho attribute này
+            gold_attr_name = f"gold_{attr['name']}"
+            product_attrs = odoo_client.search('product.attribute', [['name', '=', gold_attr_name]])
+            
+            available_values = []
+            if product_attrs:
+                attr_values = odoo_client.search_read(
+                    'product.attribute.value',
+                    [['attribute_id', '=', product_attrs[0]]],
+                    ['name'],
+                    order='name'
+                )
+                available_values = [v['name'] for v in attr_values]
+            
+            filter_options.append({
+                'id': attr['id'],
+                'name': attr['name'],
+                'display_name': attr.get('display_name') or attr['name'],
+                'short_name': attr.get('short_name', ''),
+                'field_type': attr.get('field_type', 'char'),
+                'unit': attr.get('unit', ''),
+                'group_name': attr.get('group_name', ''),
+                'available_values': available_values
+            })
+        
+        return APIResponse(success=True, data=filter_options)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/attributes/{attribute_id}", response_model=APIResponse)
+async def update_attribute(attribute_id: int, attribute: AttributeUpdate):
+    """Cập nhật thuộc tính"""
+    try:
+        attribute_data = {k: v for k, v in attribute.dict().items() if v is not None}
+        if not attribute_data:
+            raise HTTPException(status_code=400, detail="Không có dữ liệu để cập nhật")
+        
+        odoo_client.write('gold.attribute.line', [attribute_id], attribute_data)
+        return APIResponse(success=True, message="Cập nhật thuộc tính thành công!")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/attributes/{attribute_id}", response_model=APIResponse)
+async def delete_attribute(attribute_id: int):
+    """Xóa thuộc tính"""
+    try:
+        odoo_client.unlink('gold.attribute.line', [attribute_id])
+        return APIResponse(success=True, message="Xóa thuộc tính thành công!")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# =============================================================================
+# 3. API CRUD CHO MÃ MẪU SẢN PHẨM (product.template)
+# =============================================================================
+
+@app.get("/api/product-templates", response_model=APIResponse)
+async def get_product_templates(
+    page: int = 1,
+    limit: int = 20,
+    search: Optional[str] = None,
+    search_filter: Optional[bool] = None,  # Chỉ tìm kiếm khi có parameter này
+    categ_id: Optional[int] = None,
+    active: Optional[bool] = None,
+    # Gold attributes filters
+    gold_attribute_filters: Optional[str] = None  # JSON string chứa {attribute_id: value}
+):
+    """Lấy danh sách mã mẫu sản phẩm với filter gold attributes"""
+    try:
+        domain = []
+        
+        # Chỉ tìm kiếm khi có search_filter=true
+        if search and search_filter:
+            # Sử dụng OR đúng cách trong Odoo: '|' chỉ kết hợp 2 điều kiện, cần nested OR cho 3+
+            domain.extend([
+                '|', '|',
+                ['name', 'ilike', search],
+                ['default_code', 'ilike', search],
+                ['barcode', 'ilike', search]
+            ])
+            
+        if categ_id:
+            domain.append(['categ_id', '=', categ_id])
+        if active is not None:
+            domain.append(['active', '=', active])
+        
+        # Xử lý gold attributes filters
+        filtered_product_ids = None
+        if gold_attribute_filters:
+            try:
+                import json
+                filters = json.loads(gold_attribute_filters)
+                if filters:
+                    # Lấy danh sách product IDs có gold attributes phù hợp
+                    filtered_product_ids = await _filter_products_by_gold_attributes(filters)
+                    if filtered_product_ids is not None:
+                        if len(filtered_product_ids) == 0:
+                            # Không có product nào match
+                            return APIResponse(success=True, data=[], total=0)
+                        else:
+                            domain.append(['id', 'in', filtered_product_ids])
+            except Exception as e:
+                print(f"Error parsing gold_attribute_filters: {e}")
+        
+        # Lấy dữ liệu với pagination
+        offset = (page - 1) * limit
+        products = odoo_client.search_read(
+            'product.template', 
+            domain, 
+            ['name', 'default_code', 'categ_id', 'type', 'active', 'sale_ok', 'purchase_ok',
+             'list_price', 'standard_price', 'weight', 'volume', 'description', 
+             'description_sale', 'description_purchase', 'barcode', 'uom_id', 'uom_po_id',
+             'create_date', 'write_date'],
+            offset=offset,
+            limit=limit,
+            order='name'
+        )
+        
+        # Lấy tên danh mục và đơn vị tính
+        categ_ids = [p['categ_id'][0] for p in products if p.get('categ_id')]
+        uom_ids = [p['uom_id'][0] for p in products if p.get('uom_id')]
+        
+        categ_dict = {}
+        if categ_ids:
+            categories = odoo_client.read('product.category', categ_ids, ['name'])
+            categ_dict = {c['id']: c['name'] for c in categories}
+        
+        uom_dict = {}
+        if uom_ids:
+            uoms = odoo_client.read('uom.uom', uom_ids, ['name'])
+            uom_dict = {u['id']: u['name'] for u in uoms}
+        
+        # Đếm số biến thể cho mỗi sản phẩm
+        for product in products:
+            variant_count = odoo_client.search_count('product.product', [['product_tmpl_id', '=', product['id']]])
+            product['variant_count'] = variant_count
+            
+            # Thêm tên danh mục và đơn vị tính
+            if product.get('categ_id'):
+                product['categ_name'] = categ_dict.get(product['categ_id'][0], '')
+            else:
+                product['categ_name'] = ''
+                
+            # Lấy gold attributes từ Odoo server
+            gold_attributes = gold_attribute_service.get_product_gold_attributes(product['id'])
+            product['gold_attributes'] = gold_attributes
+            product['is_jewelry_product'] = len(gold_attributes) > 0
+            
+            # Tạo summary
+            if gold_attributes:
+                summary_parts = []
+                for attr in gold_attributes[:3]:  # Chỉ hiển thị 3 attributes đầu
+                    if attr.get('display_value'):
+                        summary_parts.append(f"{attr['attribute_short_name'] or attr['attribute_name']}: {attr['display_value']}")
+                product['gold_attributes_summary'] = '; '.join(summary_parts)
+                if len(gold_attributes) > 3:
+                    product['gold_attributes_summary'] += f" (+{len(gold_attributes)-3} more)"
+            else:
+                product['gold_attributes_summary'] = ''
+                
+            if product.get('uom_id'):
+                product['uom_name'] = uom_dict.get(product['uom_id'][0], '')
+            else:
+                product['uom_name'] = ''
+        
+        # Đếm tổng số bản ghi
+        total = odoo_client.search_count('product.template', domain)
+        
+        return APIResponse(success=True, data=products, total=total)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/product-templates", response_model=APIResponse)
+async def create_product_template(product: ProductTemplateCreate):
+    """Tạo mã mẫu sản phẩm mới"""
+    try:
+        product_data = {k: v for k, v in product.dict().items() if v is not None}
+        product_id = odoo_client.create('product.template', product_data)
+        return APIResponse(success=True, data={"id": product_id}, message="Tạo mã mẫu sản phẩm thành công!")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/product-templates/statistics", response_model=APIResponse)
+async def get_product_template_statistics():
+    """Lấy thống kê về mã mẫu sản phẩm"""
+    try:
+        # Tổng số mã mẫu
+        total_templates = odoo_client.search_count('product.template', [])
+        active_templates = odoo_client.search_count('product.template', [['active', '=', True]])
+        inactive_templates = total_templates - active_templates
+        
+        # Thống kê theo danh mục
+        categories = odoo_client.search_read('product.category', [], ['name'])
+        by_category = {}
+        for cat in categories:
+            count = odoo_client.search_count('product.template', [['categ_id', '=', cat['id']]])
+            if count > 0:
+                by_category[cat['name']] = count
+        
+        # Thống kê theo loại sản phẩm
+        by_type = {}
+        for ptype in ['product', 'consu', 'service']:
+            count = odoo_client.search_count('product.template', [['type', '=', ptype]])
+            if count > 0:
+                by_type[ptype] = count
+        
+        # Giá trung bình
+        all_prices = odoo_client.search_read('product.template', [], ['list_price'])
+        prices = [p['list_price'] for p in all_prices if p['list_price'] > 0]
+        avg_price = sum(prices) / len(prices) if prices else 0
+        total_value = sum(prices)
+        
+        # Lấy thống kê gold attributes từ service
+        gold_stats = gold_attribute_service.get_gold_attribute_statistics()
+        
+        stats = {
+            'total_templates': total_templates,
+            'active_templates': active_templates,
+            'inactive_templates': inactive_templates,
+            'by_category': by_category,
+            'by_type': by_type,
+            'avg_price': avg_price,
+            'total_value': total_value,
+            'with_gold_attributes': gold_stats.get('products_with_gold_attributes', 0),
+            'without_gold_attributes': gold_stats.get('products_without_gold_attributes', total_templates)
+        }
+        
+        return APIResponse(success=True, data=stats)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/product-templates/{product_id}", response_model=APIResponse)
+async def get_product_template(product_id: int):
+    """Lấy thông tin mã mẫu sản phẩm theo ID"""
+    try:
+        product = odoo_client.read('product.template', [product_id], [
+            'name', 'default_code', 'categ_id', 'type', 'active', 'sale_ok', 'purchase_ok',
+            'list_price', 'standard_price', 'weight', 'volume', 'description', 
+            'description_sale', 'description_purchase', 'barcode', 'uom_id', 'uom_po_id',
+            'create_date', 'write_date'
+        ])
+        if not product:
+            raise HTTPException(status_code=404, detail="Không tìm thấy mã mẫu sản phẩm")
+        
+        # Lấy tên danh mục và đơn vị tính
+        if product[0].get('categ_id'):
+            categ = odoo_client.read('product.category', [product[0]['categ_id'][0]], ['name'])
+            product[0]['categ_name'] = categ[0]['name'] if categ else ''
+        else:
+            product[0]['categ_name'] = ''
+            
+        if product[0].get('uom_id'):
+            uom = odoo_client.read('uom.uom', [product[0]['uom_id'][0]], ['name'])
+            product[0]['uom_name'] = uom[0]['name'] if uom else ''
+        else:
+            product[0]['uom_name'] = ''
+        
+        # Đếm số biến thể
+        variant_count = odoo_client.search_count('product.product', [['product_tmpl_id', '=', product_id]])
+        product[0]['variant_count'] = variant_count
+        
+        # Lấy gold attributes từ Odoo server
+        try:
+            gold_attributes = gold_attribute_service.get_product_gold_attributes(product_id)
+            product[0]['gold_attributes'] = gold_attributes
+            product[0]['is_jewelry_product'] = len(gold_attributes) > 0
+        except Exception as e:
+            print(f"Error getting gold attributes for product {product_id}: {e}")
+            product[0]['gold_attributes'] = []
+            product[0]['is_jewelry_product'] = False
+        
+        # Tạo gold attributes summary
+        gold_attributes = product[0]['gold_attributes']
+        if gold_attributes:
+            summary_parts = []
+            for attr in gold_attributes:
+                if attr.get('display_value'):
+                    attr_name = attr.get('attribute_short_name') or attr.get('attribute_name', '')
+                    summary_parts.append(f"{attr_name}: {attr['display_value']}")
+            product[0]['gold_attributes_summary'] = '; '.join(summary_parts)
+        else:
+            product[0]['gold_attributes_summary'] = ''
+        
+        return APIResponse(success=True, data=product[0])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/product-templates/{product_id}", response_model=APIResponse)
+async def update_product_template(product_id: int, product: ProductTemplateUpdate):
+    """Cập nhật mã mẫu sản phẩm với gold attributes tích hợp client-side"""
+    try:
+        # Lấy dữ liệu và chỉ giữ những field không None
+        product_data = {}
+        raw_data = product.dict(exclude_unset=True)
+        
+        # Extract gold_attributes để xử lý riêng ở client-side
+        gold_attributes = raw_data.pop('gold_attributes', None)
+        print(f"Extracted gold_attributes: {gold_attributes}, type: {type(gold_attributes)}")
+        
+        # Validate và clean data để tránh lỗi unhashable type
+        for key, value in raw_data.items():
+            if value is not None:
+                # Đảm bảo không có giá trị list/dict không mong muốn
+                if isinstance(value, (list, dict, set, tuple)):
+                    print(f"Warning: Skipping field {key} with complex type {type(value)}")
+                    continue
+                    
+                # Convert Decimal về float cho các field số
+                if isinstance(value, Decimal):
+                    product_data[key] = float(value)
+                # Đảm bảo boolean fields đúng kiểu
+                elif isinstance(value, bool):
+                    product_data[key] = bool(value)
+                # String fields
+                elif isinstance(value, str):
+                    product_data[key] = str(value).strip()
+                # Integer fields
+                elif isinstance(value, int):
+                    product_data[key] = int(value)
+                # Float fields
+                elif isinstance(value, float):
+                    product_data[key] = float(value)
+                else:
+                    product_data[key] = value
+        
+        # Kiểm tra product có tồn tại không
+        existing_count = odoo_client.search_count('product.template', [['id', '=', product_id]])
+        if existing_count == 0:
+            raise HTTPException(status_code=404, detail="Không tìm thấy mã mẫu sản phẩm")
+        
+        # Update basic product fields trong Odoo (nếu có)
+        if product_data:
+            print(f"Updating Odoo product {product_id} with data: {product_data}")
+            result = odoo_client.write('product.template', product_id, product_data)
+            print(f"Odoo update result: {result}")
+        
+        # Update gold attributes trong Odoo server
+        gold_attrs_result = None
+        if gold_attributes and isinstance(gold_attributes, dict):
+            print(f"Updating gold attributes for product {product_id}: {gold_attributes}")
+            gold_attrs_result = gold_attribute_service.bulk_set_product_gold_attributes(product_id, gold_attributes)
+            print(f"Gold attributes result: {gold_attrs_result}")
+        
+        # Tạo response message
+        messages = []
+        if product_data:
+            messages.append("Cập nhật thông tin sản phẩm thành công")
+        if gold_attrs_result:
+            messages.append(f"Cập nhật {len(gold_attributes)} gold attributes thành công")
+        elif gold_attributes and not gold_attrs_result:
+            messages.append("Có lỗi khi cập nhật gold attributes")
+        
+        final_message = "; ".join(messages) if messages else "Cập nhật thành công"
+        
+        return APIResponse(
+            success=True, 
+            message=final_message,
+            data={
+                'product_updated': bool(product_data),
+                'gold_attributes_updated': bool(gold_attrs_result),
+                'gold_attributes_count': len(gold_attributes) if gold_attributes else 0
+            }
+        )
+        
+    except Exception as e:
+        error_msg = str(e)
+        print(f"Error updating product: {error_msg}")
+        
+        # Parse Odoo XML-RPC fault để có thông báo lỗi tốt hơn
+        if "unhashable type" in error_msg:
+            raise HTTPException(status_code=400, detail="Dữ liệu không hợp lệ: có field chứa giá trị phức tạp không được phép")
+        elif "Access denied" in error_msg:
+            raise HTTPException(status_code=403, detail="Không có quyền cập nhật sản phẩm")
+        elif "TypeError" in error_msg:
+            raise HTTPException(status_code=400, detail="Lỗi kiểu dữ liệu: dữ liệu gửi lên không đúng format")
+        else:
+            raise HTTPException(status_code=500, detail=f"Lỗi server: {error_msg}")
+
+@app.delete("/api/product-templates/{product_id}", response_model=APIResponse)
+async def delete_product_template(product_id: int):
+    """Xóa mã mẫu sản phẩm"""
+    try:
+        # Kiểm tra xem có biến thể nào không
+        variant_count = odoo_client.search_count('product.product', [['product_tmpl_id', '=', product_id]])
+        if variant_count > 0:
+            raise HTTPException(status_code=400, detail=f"Không thể xóa sản phẩm vì còn {variant_count} biến thể")
+        
+        odoo_client.unlink('product.template', [product_id])
+        return APIResponse(success=True, message="Xóa mã mẫu sản phẩm thành công!")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# =============================================================================
+# 4. API HỖ TRỢ - LẤY DANH SÁCH TÙY CHỌN
+# =============================================================================
+
+@app.get("/api/options/categories", response_model=APIResponse)
+async def get_category_options():
+    """Lấy danh sách danh mục sản phẩm cho dropdown"""
+    try:
+        categories = odoo_client.search_read('product.category', [], ['name', 'complete_name'], order='complete_name')
+        return APIResponse(success=True, data=categories)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/options/uoms", response_model=APIResponse)
+async def get_uom_options():
+    """Lấy danh sách đơn vị tính cho dropdown"""
+    try:
+        uoms = odoo_client.search_read('uom.uom', [], ['name', 'category_id'], order='name')
+        return APIResponse(success=True, data=uoms)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/options/field-types", response_model=APIResponse)
+async def get_field_type_options():
+    """Lấy danh sách kiểu dữ liệu cho dropdown"""
+    field_types = [
+        {'id': 'char', 'name': 'Văn bản'},
+        {'id': 'float', 'name': 'Số thập phân'},
+        {'id': 'integer', 'name': 'Số nguyên'},
+        {'id': 'boolean', 'name': 'Đúng/Sai'},
+        {'id': 'date', 'name': 'Ngày'},
+        {'id': 'selection', 'name': 'Lựa chọn'}
+    ]
+    return APIResponse(success=True, data=field_types)
+
+@app.get("/api/options/product-types", response_model=APIResponse)
+async def get_product_type_options():
+    """Lấy danh sách loại sản phẩm cho dropdown"""
+    product_types = [
+        {'id': 'product', 'name': 'Sản phẩm có tồn kho'},
+        {'id': 'consu', 'name': 'Sản phẩm tiêu hao'},
+        {'id': 'service', 'name': 'Dịch vụ'}
+    ]
+    return APIResponse(success=True, data=product_types)
+
+# =============================================================================
+# 5. API TÍCH HỢP GOLD ATTRIBUTE LINE
+# =============================================================================
+
+@app.get("/api/product-templates/{product_id}/gold-attributes", response_model=APIResponse)
+async def get_product_template_gold_attributes(product_id: int):
+    """Lấy thuộc tính vàng của mã mẫu sản phẩm"""
+    try:
+        # Lấy gold attributes đã lưu của product template này
+        gold_attributes = gold_attribute_service.get_product_gold_attributes(product_id)
+        
+        # Lấy tất cả gold attributes available
+        available_attributes = odoo_client.search_read(
+            'gold.attribute.line', 
+            [['active', '=', True]], 
+            ['name', 'display_name', 'short_name', 'field_type', 'required', 'editable', 
+             'default_value', 'unit', 'description', 'validation_regex', 'selection_options',
+             'category', 'group_id']
+        )
+        
+        # Lấy tên groups
+        group_ids = [attr['group_id'][0] for attr in available_attributes if attr.get('group_id')]
+        group_dict = {}
+        if group_ids:
+            groups = odoo_client.read('product.template.attribute.group', group_ids, ['name'])
+            group_dict = {g['id']: g['name'] for g in groups}
+        
+        # Thêm group name vào attributes
+        for attr in available_attributes:
+            if attr.get('group_id'):
+                attr['group_name'] = group_dict.get(attr['group_id'][0], '')
+            else:
+                attr['group_name'] = ''
+        
+        return APIResponse(success=True, data={
+            'gold_attributes': gold_attributes,
+            'available_attributes': available_attributes
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/product-templates/{product_id}/gold-attributes/{attribute_id}", response_model=APIResponse)
+async def update_product_template_gold_attribute(
+    product_id: int, 
+    attribute_id: int, 
+    attribute_value: GoldAttributeValueUpdate
+):
+    """Cập nhật giá trị thuộc tính vàng của mã mẫu"""
+    try:
+        # Tạm thời chưa implement
+        return APIResponse(success=True, message="Tính năng sẽ được implement sau")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/product-templates/{product_id}/gold-attributes/{attribute_id}", response_model=APIResponse)
+async def delete_product_template_gold_attribute(product_id: int, attribute_id: int):
+    """Xóa giá trị thuộc tính vàng của mã mẫu"""
+    try:
+        # Tạm thời chưa implement
+        return APIResponse(success=True, message="Tính năng sẽ được implement sau")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# =============================================================================
+# 6. API THỐNG KÊ VÀ BÁO CÁO
+# =============================================================================
+
+
+
+@app.get("/api/gold-attributes/usage-statistics", response_model=APIResponse)
+async def get_attribute_usage_statistics():
+    """Thống kê sử dụng thuộc tính vàng"""
+    try:
+        # Lấy tất cả gold attributes
+        attributes = odoo_client.search_read(
+            'gold.attribute.line', 
+            [], 
+            ['name', 'display_name', 'category']
+        )
+        
+        # Tạm thời return usage = 0 vì chưa có model lưu values
+        usage_stats = []
+        for attr in attributes:
+            usage_stats.append({
+                'attribute_id': attr['id'],
+                'attribute_name': attr['name'],
+                'usage_count': 0,
+                'templates_using': []
+            })
+        
+        return APIResponse(success=True, data=usage_stats)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# =============================================================================
+# 7. API BULK OPERATIONS
+# =============================================================================
+
+@app.post("/api/product-templates/bulk-action", response_model=APIResponse)
+async def product_template_bulk_action(bulk_action: ProductTemplateBulkAction):
+    """Thực hiện hành động hàng loạt trên mã mẫu"""
+    try:
+        template_ids = bulk_action.template_ids
+        action = bulk_action.action
+        data = bulk_action.data or {}
+        
+        if action == 'activate':
+            odoo_client.write('product.template', template_ids, {'active': True})
+            message = f"Đã kích hoạt {len(template_ids)} mã mẫu"
+            
+        elif action == 'deactivate':
+            odoo_client.write('product.template', template_ids, {'active': False})
+            message = f"Đã vô hiệu hóa {len(template_ids)} mã mẫu"
+            
+        elif action == 'delete':
+            # Kiểm tra variants trước khi xóa
+            for template_id in template_ids:
+                variant_count = odoo_client.search_count('product.product', [['product_tmpl_id', '=', template_id]])
+                if variant_count > 0:
+                    raise HTTPException(
+                        status_code=400, 
+                        detail=f"Không thể xóa mã mẫu ID {template_id} vì còn {variant_count} biến thể"
+                    )
+            odoo_client.unlink('product.template', template_ids)
+            message = f"Đã xóa {len(template_ids)} mã mẫu"
+            
+        elif action == 'update_category':
+            if 'categ_id' not in data:
+                raise HTTPException(status_code=400, detail="Thiếu categ_id trong data")
+            odoo_client.write('product.template', template_ids, {'categ_id': data['categ_id']})
+            message = f"Đã cập nhật danh mục cho {len(template_ids)} mã mẫu"
+            
+        else:
+            raise HTTPException(status_code=400, detail=f"Hành động không hợp lệ: {action}")
+        
+        return APIResponse(success=True, message=message)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
@@ -872,6 +1269,83 @@ async def health_check():
             "calculator_stats": stats,
             "timestamp": datetime.utcnow().isoformat()
         }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e),
+            "kafka_connected": kafka_consumer.running,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+# ================================
+# CLIENT-SIDE GOLD ATTRIBUTES ENDPOINTS
+# ================================
+
+@app.get("/api/product-templates/{product_id}/gold-attributes", response_model=APIResponse)
+async def get_product_gold_attributes_client(product_id: int):
+    """Lấy gold attributes từ Odoo server"""
+    try:
+        gold_attributes = gold_attribute_service.get_product_gold_attributes(product_id)
+        return APIResponse(success=True, data=gold_attributes)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/product-templates/{product_id}/gold-attributes", response_model=APIResponse)
+async def set_product_gold_attributes_client(product_id: int, request: Request):
+    """Set gold attributes cho product template"""
+    try:
+        # Lấy data từ request body
+        body = await request.json()
+        
+        # Kiểm tra product có tồn tại không
+        existing_count = odoo_client.search_count('product.template', [['id', '=', product_id]])
+        if existing_count == 0:
+            raise HTTPException(status_code=404, detail="Không tìm thấy mã mẫu sản phẩm")
+        
+        # Convert string keys to int
+        converted_attributes = {}
+        for key, value in body.items():
+            try:
+                attribute_id = int(key)
+                converted_attributes[attribute_id] = value
+            except ValueError:
+                print(f"Warning: Invalid attribute ID: {key}")
+                continue
+        
+        print(f"Setting gold attributes for product {product_id}: {converted_attributes}")
+        result = gold_attribute_service.bulk_set_product_gold_attributes(product_id, converted_attributes)
+        print(f"Result: {result}")
+        
+        if result:
+            message = f"Đã set {len(converted_attributes)} gold attributes thành công"
+            return APIResponse(success=True, message=message)
+        else:
+            return APIResponse(success=False, message="Có lỗi khi set gold attributes")
+        
+    except Exception as e:
+        print(f"Error in set_product_gold_attributes_client: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/product-templates/{product_id}/gold-attributes", response_model=APIResponse)
+async def clear_product_gold_attributes_client(product_id: int):
+    """Xóa tất cả gold attributes của product"""
+    try:
+        success = gold_attribute_service.clear_all_product_gold_attributes(product_id)
+        if success:
+            return APIResponse(success=True, message="Đã xóa tất cả gold attributes")
+        else:
+            raise HTTPException(status_code=500, detail="Không thể xóa gold attributes")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/gold-attributes-statistics", response_model=APIResponse)
+async def get_gold_attributes_statistics():
+    """Lấy thống kê về gold attributes usage"""
+    try:
+        stats = gold_attribute_service.get_gold_attribute_statistics()
+        return APIResponse(success=True, data=stats)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         return {
             "status": "error",

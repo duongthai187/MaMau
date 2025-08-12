@@ -1,0 +1,1917 @@
+{% extends "base.html" %}
+
+{% block title %}Quản lý Trang sức & Đá quý{% endblock %}
+
+{% block content %}
+<style>
+/* =============================================
+   JEWELRY & GEMSTONE THEME - LIGHT VERSION
+   ============================================= */
+:root {
+    --primary-gold: #F39C12;
+    --light-gold: #F8C471;
+    --dark-gold: #D4AC0D;
+    --primary-red: #E74C3C;
+    --light-red: #F1948A;
+    --dark-red: #C0392B;
+    --background-light: #FDFEFE;
+    --background-cream: #FDF2E9;
+    --text-dark: #2C3E50;
+    --text-muted: #7B7D7D;
+    --border-light: #E8E8E8;
+    --shadow-light: 0 2px 8px rgba(0,0,0,0.1);
+    --shadow-gold: 0 4px 12px rgba(243, 156, 18, 0.3);
+    --shadow-red: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+body {
+    background-color: var(--background-light);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.jewelry-container {
+    background-color: var(--background-light);
+    min-height: 100vh;
+    padding: 2rem 0;
+}
+
+.jewelry-header {
+    background: linear-gradient(135deg, var(--primary-gold) 0%, var(--light-gold) 100%);
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-gold);
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+}
+
+.jewelry-title {
+    font-weight: 700;
+    margin: 0;
+    font-size: 2.5rem;
+}
+
+.jewelry-subtitle {
+    font-weight: 500;
+    opacity: 0.95;
+    margin: 0;
+}
+
+.jewelry-tabs {
+    background: white;
+    border-radius: 12px;
+    padding: 0.5rem;
+    box-shadow: var(--shadow-light);
+    border: 1px solid var(--border-light);
+    margin-bottom: 2rem;
+}
+
+.jewelry-tab-btn {
+    background: transparent !important;
+    border: none !important;
+    color: var(--text-dark) !important;
+    font-weight: 600;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    margin: 0 0.25rem;
+}
+
+.jewelry-tab-btn:hover {
+    background: var(--background-cream) !important;
+    color: var(--primary-gold) !important;
+    transform: translateY(-1px);
+}
+
+.jewelry-tab-btn.active {
+    background: linear-gradient(135deg, var(--primary-gold) 0%, var(--dark-gold) 100%) !important;
+    color: white !important;
+    box-shadow: var(--shadow-gold);
+}
+
+.jewelry-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow-light);
+    border: 1px solid var(--border-light);
+    margin-bottom: 2rem;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.jewelry-card:hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+}
+
+.jewelry-card-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-light);
+    font-weight: 700;
+}
+
+.jewelry-card-header.gold-theme {
+    background: linear-gradient(135deg, var(--primary-gold) 0%, var(--light-gold) 100%);
+    color: white;
+    border-bottom: none;
+}
+
+.jewelry-card-header.red-theme {
+    background: linear-gradient(135deg, var(--primary-red) 0%, var(--light-red) 100%);
+    color: white;
+    border-bottom: none;
+}
+
+.jewelry-btn-primary {
+    background: linear-gradient(135deg, var(--primary-gold) 0%, var(--dark-gold) 100%) !important;
+    border: none !important;
+    color: white !important;
+    font-weight: 600;
+    padding: 0.7rem 1.5rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.jewelry-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-gold);
+    color: white !important;
+}
+
+.jewelry-btn-secondary {
+    background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%) !important;
+    border: none !important;
+    color: white !important;
+    font-weight: 600;
+    padding: 0.7rem 1.5rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.jewelry-btn-secondary:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-red);
+    color: white !important;
+}
+
+.jewelry-btn-outline {
+    background: white !important;
+    border: 2px solid var(--primary-gold) !important;
+    color: var(--primary-gold) !important;
+    font-weight: 600;
+    padding: 0.5rem 1.2rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.jewelry-btn-outline:hover {
+    background: var(--primary-gold) !important;
+    color: white !important;
+    transform: translateY(-1px);
+}
+
+.jewelry-form-control {
+    border: 2px solid var(--border-light);
+    border-radius: 8px;
+    padding: 0.75rem;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.jewelry-form-control:focus {
+    border-color: var(--primary-gold);
+    box-shadow: 0 0 0 0.2rem rgba(243, 156, 18, 0.25);
+}
+
+.jewelry-table {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow-light);
+}
+
+.jewelry-table thead {
+    background: linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%);
+    color: var(--text-dark);
+    font-weight: 700;
+}
+
+.jewelry-table tbody tr {
+    transition: all 0.3s ease;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.jewelry-table tbody tr:hover {
+    background-color: var(--background-cream);
+}
+
+.jewelry-badge-gold {
+    background: linear-gradient(135deg, var(--primary-gold) 0%, var(--dark-gold) 100%);
+    color: white;
+    font-weight: 600;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.jewelry-badge-red {
+    background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%);
+    color: white;
+    font-weight: 600;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.jewelry-badge-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    font-weight: 600;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.jewelry-badge-secondary {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    color: white;
+    font-weight: 600;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.gem-icon {
+    background: linear-gradient(135deg, var(--primary-gold) 0%, var(--dark-gold) 100%);
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    box-shadow: var(--shadow-gold);
+}
+
+.ruby-icon {
+    background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%);
+}
+
+.jewelry-alert-success {
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(32, 201, 151, 0.1) 100%);
+    border: 2px solid #28a745;
+    color: #155724;
+    border-radius: 10px;
+    padding: 1rem 1.5rem;
+}
+
+.jewelry-alert-danger {
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(192, 57, 43, 0.1) 100%);
+    border: 2px solid var(--primary-red);
+    color: #721c24;
+    border-radius: 10px;
+    padding: 1rem 1.5rem;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(243, 156, 18, 0.3);
+    border-radius: 50%;
+    border-top-color: var(--primary-gold);
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.section-divider {
+    background: linear-gradient(90deg, transparent 0%, var(--primary-gold) 50%, transparent 100%);
+    height: 2px;
+    margin: 2rem 0;
+    border-radius: 1px;
+}
+
+/* Form styling improvements */
+.form-group-card {
+    background: var(--background-cream);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border-light);
+}
+
+.form-group-card h6 {
+    color: var(--text-dark);
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .jewelry-container {
+        padding: 1rem 0;
+    }
+    
+    .jewelry-header {
+        padding: 1.5rem;
+        text-align: center;
+    }
+    
+    .jewelry-title {
+        font-size: 2rem;
+    }
+    
+    .jewelry-tabs {
+        flex-direction: column;
+    }
+    
+    .jewelry-tab-btn {
+        margin-bottom: 0.5rem;
+        text-align: center;
+    }
+}
+</style>
+
+<div class="jewelry-container">
+    <div class="container-fluid">
+        <!-- Status Messages -->
+        <div id="statusMessages"></div>
+        
+        <!-- Header Section -->
+        <div class="jewelry-header">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <div class="flex-grow-1">
+                    <h1 class="jewelry-title">
+                        <span class="gem-icon">
+                            <i class="fas fa-gem"></i>
+                        </span>
+                        Quản lý Trang sức & Đá quý
+                    </h1>
+                    <p class="jewelry-subtitle mt-2">
+                        <i class="fas fa-sparkles me-2"></i>
+                        Hệ thống quản lý chuyên nghiệp cho ngành trang sức
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="jewelry-tabs d-flex justify-content-center flex-wrap">
+            <input type="radio" class="btn-check" name="mainTab" id="groupsTab" checked>
+            <label class="jewelry-tab-btn" for="groupsTab">
+                <i class="fas fa-layer-group me-2"></i>
+                Nhóm Thuộc tính
+            </label>
+            
+            <input type="radio" class="btn-check" name="mainTab" id="attributesTab">
+            <label class="jewelry-tab-btn" for="attributesTab">
+                <i class="fas fa-tags me-2"></i>
+                Đặc tính Kim loại
+            </label>
+            
+            <input type="radio" class="btn-check" name="mainTab" id="templatesTab">
+            <label class="jewelry-tab-btn" for="templatesTab">
+                <i class="fas fa-ring me-2"></i>
+                Mẫu Trang sức
+            </label>
+        </div>
+
+        <!-- ============================================================================= -->
+        <!-- 1. NHÓM THUỘC TÍNH TAB -->
+        <!-- ============================================================================= -->
+        <div id="groupsContent" class="tab-content">
+            <!-- Create/Edit Form for Groups -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="jewelry-card jewelry-form-card" id="groupForm" style="display: none;">
+                        <div class="jewelry-card-header gold-theme">
+                            <h5 class="mb-0">
+                                <span class="gem-icon">
+                                    <i class="fas fa-edit"></i>
+                                </span>
+                                <span id="groupFormTitle">Tạo Nhóm Thuộc tính Mới</span>
+                            </h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <form id="groupFormElement" onsubmit="submitGroup(event)">
+                                <input type="hidden" id="groupId">
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-4">
+                                            <label for="groupName" class="form-label fw-bold text-dark">
+                                                <i class="fas fa-signature text-warning me-2"></i>
+                                                Tên nhóm <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="text" class="form-control jewelry-form-control" id="groupName" required 
+                                                   placeholder="VD: Đặc tính Vàng, Đặc tính Bạc...">
+                                        </div>
+                                        
+                                        <div class="mb-4">
+                                            <label for="groupDescription" class="form-label fw-bold text-dark">
+                                                <i class="fas fa-align-left text-warning me-2"></i>
+                                                Mô tả chi tiết
+                                            </label>
+                                            <textarea class="form-control jewelry-form-control" id="groupDescription" rows="4" 
+                                                      placeholder="Mô tả chi tiết về nhóm thuộc tính này..."></textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="mb-4">
+                                            <label for="groupSequence" class="form-label fw-bold text-dark">
+                                                <i class="fas fa-sort-numeric-up text-warning me-2"></i>
+                                                Thứ tự hiển thị
+                                            </label>
+                                            <input type="number" class="form-control jewelry-form-control" id="groupSequence" 
+                                                   value="10" min="1" max="999">
+                                            <div class="form-text">Số thứ tự để sắp xếp hiển thị (1-999)</div>
+                                        </div>
+                                        
+                                        <div class="mb-4">
+                                            <div class="jewelry-card p-3" style="background: rgba(255, 215, 0, 0.1);">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" id="groupActive" checked style="transform: scale(1.2);">
+                                                    <label class="form-check-label fw-bold text-dark ms-2" for="groupActive">
+                                                        <i class="fas fa-power-off text-success me-2"></i>
+                                                        Đang sử dụng
+                                                    </label>
+                                                </div>
+                                                <small class="text-muted">Bật/tắt trạng thái hoạt động của nhóm</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-3 pt-3 border-top">
+                                    <button type="submit" class="jewelry-btn-primary">
+                                        <i class="fas fa-save me-2"></i>
+                                        <span id="groupSubmitBtnText">Lưu</span>
+                                    </button>
+                                    <button type="button" class="jewelry-btn-outline" onclick="hideGroupForm()">
+                                        <i class="fas fa-times me-2"></i>
+                                        Hủy bỏ
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Groups Table -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="jewelry-card">
+                        <div class="jewelry-card-header gold-theme">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                                <h5 class="mb-0">
+                                    <span class="gem-icon">
+                                        <i class="fas fa-list-ul"></i>
+                                    </span>
+                                    Danh sách Nhóm Thuộc tính
+                                </h5>
+                                <div class="d-flex gap-2 flex-wrap mt-2 mt-lg-0">
+                                    <div class="input-group" style="width: 250px;">
+                                        <span class="input-group-text bg-light border-warning">
+                                            <i class="fas fa-search text-warning"></i>
+                                        </span>
+                                        <input type="text" class="jewelry-form-control" id="groupSearchInput" 
+                                               placeholder="Tìm kiếm nhóm..." onkeyup="filterGroups()">
+                                    </div>
+                                    <button class="jewelry-btn-primary" onclick="showCreateGroupForm()">
+                                        <i class="fas fa-plus-circle me-2"></i>
+                                        Tạo nhóm mới
+                                    </button>
+                                    <button class="jewelry-btn-outline" onclick="loadGroups()" title="Tải lại dữ liệu">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table jewelry-table mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th width="80" class="text-center">
+                                                <i class="fas fa-hashtag me-1"></i>ID
+                                            </th>
+                                            <th>
+                                                <i class="fas fa-tag me-1"></i>Tên nhóm
+                                            </th>
+                                            <th>
+                                                <i class="fas fa-comment me-1"></i>Mô tả
+                                            </th>
+                                            <th width="120" class="text-center">
+                                                <i class="fas fa-count me-1"></i>Số thuộc tính
+                                            </th>
+                                            <th width="120" class="text-center">
+                                                <i class="fas fa-toggle-on me-1"></i>Trạng thái
+                                            </th>
+                                            <th width="140" class="text-center">
+                                                <i class="fas fa-cogs me-1"></i>Thao tác
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="groupsTable">
+                                        <tr>
+                                            <td colspan="6" class="text-center py-5">
+                                                <div class="loading-gem"></div>
+                                                <p class="mt-3 text-muted">Đang tải dữ liệu...</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================================= -->
+        <!-- 2. THUỘC TÍNH TAB -->
+        <!-- ============================================================================= -->
+        <div id="attributesContent" class="tab-content" style="display: none;">
+            <!-- Create/Edit Form for Attributes -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="jewelry-card jewelry-form-card" id="attributeForm" style="display: none;">
+                        <div class="jewelry-card-header ruby-theme">
+                            <h5 class="mb-0">
+                                <span class="gem-icon ruby-icon">
+                                    <i class="fas fa-atom"></i>
+                                </span>
+                                <span id="attributeFormTitle">Tạo Đặc tính Kim loại Mới</span>
+                            </h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <form id="attributeFormElement" onsubmit="submitAttribute(event)">
+                                <input type="hidden" id="attributeId">
+                                
+                                <div class="row">
+                                    <!-- Basic Information -->
+                                    <div class="col-md-6">
+                                        <div class="jewelry-card p-3 mb-4" style="background: rgba(220, 20, 60, 0.1);">
+                                            <h6 class="text-danger mb-3 fw-bold">
+                                                <i class="fas fa-info-circle me-2"></i>Thông tin cơ bản
+                                            </h6>
+                                            
+                                            <div class="mb-3">
+                                                <label for="attributeName" class="form-label fw-bold text-dark">
+                                                    <i class="fas fa-code text-danger me-2"></i>
+                                                    Tên kỹ thuật <span class="text-danger">*</span>
+                                                </label>
+                                                <input type="text" class="form-control jewelry-form-control" id="attributeName" required
+                                                       placeholder="VD: gold_purity, silver_weight...">
+                                                <div class="form-text">Tên không dấu, viết thường, có thể dùng dấu gạch dưới</div>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="attributeDisplayName" class="form-label fw-bold text-dark">
+                                                    <i class="fas fa-eye text-danger me-2"></i>
+                                                    Tên hiển thị
+                                                </label>
+                                                <input type="text" class="form-control jewelry-form-control" id="attributeDisplayName"
+                                                       placeholder="VD: Độ tinh khiết vàng, Trọng lượng bạc...">
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="attributeFieldType" class="form-label fw-bold text-dark">
+                                                    <i class="fas fa-database text-danger me-2"></i>
+                                                    Kiểu dữ liệu <span class="text-danger">*</span>
+                                                </label>
+                                                <select class="form-select jewelry-form-control" id="attributeFieldType" required>
+                                                    <option value="">-- Chọn kiểu dữ liệu --</option>
+                                                    <option value="char">📝 Văn bản (Text)</option>
+                                                    <option value="float">🔢 Số thập phân (Float)</option>
+                                                    <option value="integer">🔢 Số nguyên (Integer)</option>
+                                                    <option value="boolean">✅ Đúng/Sai (Boolean)</option>
+                                                    <option value="date">📅 Ngày tháng (Date)</option>
+                                                    <option value="selection">📋 Lựa chọn (Selection)</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="attributeGroupId" class="form-label fw-bold text-dark">
+                                                    <i class="fas fa-layer-group text-danger me-2"></i>
+                                                    Nhóm thuộc tính
+                                                </label>
+                                                <select class="form-select jewelry-form-control" id="attributeGroupId">
+                                                    <option value="">-- Chọn nhóm --</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Extended Information -->
+                                    <div class="col-md-6">
+                                        <div class="jewelry-card p-3 mb-4" style="background: rgba(255, 215, 0, 0.1);">
+                                            <h6 class="text-warning mb-3 fw-bold">
+                                                <i class="fas fa-cog me-2"></i>Thông tin mở rộng
+                                            </h6>
+                                            
+                                            <div class="mb-3">
+                                                <label for="attributeUnit" class="form-label fw-bold text-dark">
+                                                    <i class="fas fa-ruler text-warning me-2"></i>
+                                                    Đơn vị tính
+                                                </label>
+                                                <input type="text" class="form-control jewelry-form-control" id="attributeUnit"
+                                                       placeholder="VD: gram, cm, %, karat...">
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="attributeCategory" class="form-label fw-bold text-dark">
+                                                    <i class="fas fa-bookmark text-warning me-2"></i>
+                                                    Phân loại
+                                                </label>
+                                                <select class="form-select jewelry-form-control" id="attributeCategory">
+                                                    <option value="">-- Chọn phân loại --</option>
+                                                    <option value="technical">🔧 Kỹ thuật (Technical)</option>
+                                                    <option value="display">👁️ Hiển thị (Display)</option>
+                                                    <option value="document">📄 Tài liệu (Document)</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="attributeDefaultValue" class="form-label fw-bold text-dark">
+                                                    <i class="fas fa-star text-warning me-2"></i>
+                                                    Giá trị mặc định
+                                                </label>
+                                                <input type="text" class="form-control jewelry-form-control" id="attributeDefaultValue"
+                                                       placeholder="Giá trị mặc định khi tạo mới...">
+                                            </div>
+
+                                            <div class="mb-3" id="attributeSelectionOptionsGroup" style="display: none;">
+                                                <label for="attributeSelectionOptions" class="form-label fw-bold text-dark">
+                                                    <i class="fas fa-list text-warning me-2"></i>
+                                                    Tùy chọn lựa chọn
+                                                </label>
+                                                <textarea class="form-control jewelry-form-control" id="attributeSelectionOptions" rows="4" 
+                                                          placeholder="18k,Vàng 18K&#10;24k,Vàng 24K&#10;silver,Bạc 925"></textarea>
+                                                <div class="form-text">Mỗi dòng: <strong>key,label</strong> (VD: 18k,Vàng 18K)</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="mb-4">
+                                            <label for="attributeDescription" class="form-label fw-bold text-dark">
+                                                <i class="fas fa-align-left text-info me-2"></i>
+                                                Mô tả chi tiết
+                                            </label>
+                                            <textarea class="form-control jewelry-form-control" id="attributeDescription" rows="3"
+                                                      placeholder="Mô tả chi tiết về đặc tính này..."></textarea>
+                                        </div>
+
+                                        <!-- Checkboxes -->
+                                        <div class="jewelry-card p-3 mb-4" style="background: rgba(40, 167, 69, 0.1);">
+                                            <h6 class="text-success mb-3 fw-bold">
+                                                <i class="fas fa-toggle-on me-2"></i>Cài đặt đặc tính
+                                            </h6>
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <div class="form-check form-switch mb-2">
+                                                        <input class="form-check-input" type="checkbox" id="attributeRequired" style="transform: scale(1.2);">
+                                                        <label class="form-check-label fw-bold ms-2" for="attributeRequired">
+                                                            <i class="fas fa-exclamation-triangle text-warning me-1"></i>
+                                                            Bắt buộc nhập
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-check form-switch mb-2">
+                                                        <input class="form-check-input" type="checkbox" id="attributeEditable" checked style="transform: scale(1.2);">
+                                                        <label class="form-check-label fw-bold ms-2" for="attributeEditable">
+                                                            <i class="fas fa-edit text-primary me-1"></i>
+                                                            Cho phép sửa
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-check form-switch mb-2">
+                                                        <input class="form-check-input" type="checkbox" id="attributeActive" checked style="transform: scale(1.2);">
+                                                        <label class="form-check-label fw-bold ms-2" for="attributeActive">
+                                                            <i class="fas fa-power-off text-success me-1"></i>
+                                                            Đang sử dụng
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Form Actions -->
+                                        <div class="d-flex gap-3 pt-3 border-top">
+                                            <button type="submit" class="jewelry-btn-ruby">
+                                                <i class="fas fa-save me-2"></i>
+                                                <span id="attributeSubmitBtnText">Lưu</span>
+                                            </button>
+                                            <button type="button" class="jewelry-btn-outline" onclick="hideAttributeForm()">
+                                                <i class="fas fa-times me-2"></i>
+                                                Hủy bỏ
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attributes Table -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="jewelry-card">
+                        <div class="jewelry-card-header ruby-theme">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                                <h5 class="mb-0">
+                                    <span class="gem-icon ruby-icon">
+                                        <i class="fas fa-list-ul"></i>
+                                    </span>
+                                    Danh sách Đặc tính Kim loại
+                                </h5>
+                                <div class="d-flex gap-2 flex-wrap mt-2 mt-lg-0">
+                                    <select class="form-select form-select-sm jewelry-form-control" id="attributeGroupFilter" 
+                                            style="width: 180px;" onchange="filterAttributes()">
+                                        <option value="">🏷️ Tất cả nhóm</option>
+                                    </select>
+                                    <div class="input-group" style="width: 250px;">
+                                        <span class="input-group-text bg-light border-danger">
+                                            <i class="fas fa-search text-danger"></i>
+                                        </span>
+                                        <input type="text" class="jewelry-form-control" id="attributeSearchInput" 
+                                               placeholder="Tìm kiếm thuộc tính..." onkeyup="filterAttributes()">
+                                    </div>
+                                    <button class="jewelry-btn-ruby" onclick="showCreateAttributeForm()">
+                                        <i class="fas fa-plus-circle me-2"></i>
+                                        Tạo đặc tính
+                                    </button>
+                                    <button class="jewelry-btn-outline" onclick="loadAttributes()" title="Tải lại dữ liệu">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table jewelry-table mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th width="80" class="text-center">
+                                                <i class="fas fa-hashtag me-1"></i>ID
+                                            </th>
+                                            <th>
+                                                <i class="fas fa-tag me-1"></i>Tên đặc tính
+                                            </th>
+                                            <th width="150">
+                                                <i class="fas fa-database me-1"></i>Kiểu dữ liệu
+                                            </th>
+                                            <th width="150">
+                                                <i class="fas fa-layer-group me-1"></i>Nhóm
+                                            </th>
+                                            <th width="120" class="text-center">
+                                                <i class="fas fa-toggle-on me-1"></i>Trạng thái
+                                            </th>
+                                            <th width="140" class="text-center">
+                                                <i class="fas fa-cogs me-1"></i>Thao tác
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="attributesTable">
+                                        <tr>
+                                            <td colspan="6" class="text-center py-5">
+                                                <div class="loading-gem" style="border-color: rgba(220, 20, 60, 0.3); border-top-color: var(--ruby-red);"></div>
+                                                <p class="mt-3 text-muted">Đang tải dữ liệu...</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================================= -->
+        <!-- 3. MÃ MẪU SẢN PHẨM TAB -->
+        <!-- ============================================================================= -->
+        <div id="templatesContent" class="tab-content" style="display: none;">
+            <!-- Create/Edit Form for Product Templates -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="jewelry-card jewelry-form-card" id="templateForm" style="display: none;">
+                        <div class="jewelry-card-header" style="background: var(--gradient-gold); color: #1A1A1A;">
+                            <h5 class="mb-0">
+                                <span class="gem-icon">
+                                    <i class="fas fa-ring"></i>
+                                </span>
+                                <span id="templateFormTitle">Tạo Mẫu Trang sức Mới</span>
+                            </h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <form id="templateFormElement" onsubmit="submitTemplate(event)">
+                                <input type="hidden" id="templateId">
+                                
+                                <div class="row">
+                                    <!-- Basic Information -->
+                                    <div class="col-md-6">
+                                        <div class="jewelry-card p-3 mb-4" style="background: rgba(255, 215, 0, 0.1);">
+                                            <h6 class="text-warning mb-3 fw-bold">
+                                                <i class="fas fa-info-circle me-2"></i>Thông tin cơ bản
+                                            </h6>
+                                            
+                                            <div class="mb-3">
+                                                <label for="templateName" class="form-label fw-bold text-dark">
+                                                    <i class="fas fa-signature text-warning me-2"></i>
+                                                    Tên sản phẩm <span class="text-danger">*</span>
+                                                </label>
+                                                <input type="text" class="form-control jewelry-form-control" id="templateName" required
+                                                       placeholder="VD: Nhẫn vàng 18K, Dây chuyền bạc 925...">
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="templateDefaultCode" class="form-label fw-bold text-dark">
+                                                    <i class="fas fa-barcode text-warning me-2"></i>
+                                                    Mã sản phẩm (SKU)
+                                                </label>
+                                                <input type="text" class="form-control jewelry-form-control" id="templateDefaultCode"
+                                                       placeholder="VD: RING-GOLD-18K-001">
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="templateCategId" class="form-label fw-bold text-dark">
+                                                    <i class="fas fa-tags text-warning me-2"></i>
+                                                    Danh mục trang sức
+                                                </label>
+                                                <select class="form-select jewelry-form-control" id="templateCategId">
+                                                    <option value="">-- Chọn danh mục --</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="templateType" class="form-label fw-bold text-dark">
+                                                    <i class="fas fa-cube text-warning me-2"></i>
+                                                    Loại sản phẩm
+                                                </label>
+                                                <select class="form-select jewelry-form-control" id="templateType">
+                                                    <option value="product">💎 Sản phẩm có tồn kho</option>
+                                                    <option value="consu">⚡ Sản phẩm tiêu hao</option>
+                                                    <option value="service">🔧 Dịch vụ</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Extended Information -->
+                                    <div class="col-md-6">
+                                        <div class="jewelry-card p-3 mb-4" style="background: rgba(220, 20, 60, 0.1);">
+                                            <h6 class="text-danger mb-3 fw-bold">
+                                                <i class="fas fa-dollar-sign me-2"></i>Thông tin giá cả & kích thước
+                                            </h6>
+                                            
+                                            <div class="mb-3">
+                                                <label for="templateListPrice" class="form-label fw-bold text-dark">
+                                                    <i class="fas fa-money-bill-wave text-danger me-2"></i>
+                                                    Giá bán (VNĐ)
+                                                </label>
+                                                <input type="number" class="form-control jewelry-form-control" id="templateListPrice" 
+                                                       step="1000" min="0" placeholder="0">
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="templateStandardPrice" class="form-label fw-bold text-dark">
+                                                    <i class="fas fa-chart-line text-danger me-2"></i>
+                                                    Giá vốn (VNĐ)
+                                                </label>
+                                                <input type="number" class="form-control jewelry-form-control" id="templateStandardPrice" 
+                                                       step="1000" min="0" placeholder="0">
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="templateWeight" class="form-label fw-bold text-dark">
+                                                    <i class="fas fa-weight text-danger me-2"></i>
+                                                    Trọng lượng (gram)
+                                                </label>
+                                                <input type="number" class="form-control jewelry-form-control" id="templateWeight" 
+                                                       step="0.001" min="0" placeholder="0.000">
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="templateBarcode" class="form-label fw-bold text-dark">
+                                                    <i class="fas fa-qrcode text-danger me-2"></i>
+                                                    Mã vạch
+                                                </label>
+                                                <input type="text" class="form-control jewelry-form-control" id="templateBarcode"
+                                                       placeholder="Mã vạch sản phẩm...">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="mb-4">
+                                            <label for="templateDescription" class="form-label fw-bold text-dark">
+                                                <i class="fas fa-align-left text-info me-2"></i>
+                                                Mô tả sản phẩm
+                                            </label>
+                                            <textarea class="form-control jewelry-form-control" id="templateDescription" rows="4"
+                                                      placeholder="Mô tả chi tiết về sản phẩm trang sức này..."></textarea>
+                                        </div>
+
+                                        <!-- Checkboxes -->
+                                        <div class="jewelry-card p-3 mb-4" style="background: rgba(40, 167, 69, 0.1);">
+                                            <h6 class="text-success mb-3 fw-bold">
+                                                <i class="fas fa-toggle-on me-2"></i>Cài đặt sản phẩm
+                                            </h6>
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <div class="form-check form-switch mb-2">
+                                                        <input class="form-check-input" type="checkbox" id="templateSaleOk" checked style="transform: scale(1.2);">
+                                                        <label class="form-check-label fw-bold ms-2" for="templateSaleOk">
+                                                            <i class="fas fa-shopping-cart text-success me-1"></i>
+                                                            Có thể bán
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-check form-switch mb-2">
+                                                        <input class="form-check-input" type="checkbox" id="templatePurchaseOk" checked style="transform: scale(1.2);">
+                                                        <label class="form-check-label fw-bold ms-2" for="templatePurchaseOk">
+                                                            <i class="fas fa-truck text-primary me-1"></i>
+                                                            Có thể mua
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-check form-switch mb-2">
+                                                        <input class="form-check-input" type="checkbox" id="templateActive" checked style="transform: scale(1.2);">
+                                                        <label class="form-check-label fw-bold ms-2" for="templateActive">
+                                                            <i class="fas fa-power-off text-success me-1"></i>
+                                                            Đang sử dụng
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Form Actions -->
+                                        <div class="d-flex gap-3 pt-3 border-top">
+                                            <button type="submit" class="jewelry-btn-primary">
+                                                <i class="fas fa-save me-2"></i>
+                                                <span id="templateSubmitBtnText">Lưu</span>
+                                            </button>
+                                            <button type="button" class="jewelry-btn-outline" onclick="hideTemplateForm()">
+                                                <i class="fas fa-times me-2"></i>
+                                                Hủy bỏ
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Templates Table -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="jewelry-card">
+                        <div class="jewelry-card-header" style="background: var(--gradient-gold); color: #1A1A1A;">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                                <h5 class="mb-0">
+                                    <span class="gem-icon">
+                                        <i class="fas fa-list-ul"></i>
+                                    </span>
+                                    Danh sách Mẫu Trang sức
+                                </h5>
+                                <div class="d-flex gap-2 flex-wrap mt-2 mt-lg-0">
+                                    <select class="form-select form-select-sm jewelry-form-control" id="templateCategoryFilter" 
+                                            style="width: 180px;" onchange="filterTemplates()">
+                                        <option value="">🏷️ Tất cả danh mục</option>
+                                    </select>
+                                    <div class="input-group" style="width: 250px;">
+                                        <span class="input-group-text bg-light border-warning">
+                                            <i class="fas fa-search text-warning"></i>
+                                        </span>
+                                        <input type="text" class="jewelry-form-control" id="templateSearchInput" 
+                                               placeholder="Tìm kiếm mẫu..." onkeyup="filterTemplates()">
+                                    </div>
+                                    <button class="jewelry-btn-primary" onclick="showCreateTemplateForm()">
+                                        <i class="fas fa-plus-circle me-2"></i>
+                                        Tạo mẫu mới
+                                    </button>
+                                    <button class="jewelry-btn-outline" onclick="loadTemplates()" title="Tải lại dữ liệu">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table jewelry-table mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th width="80" class="text-center">
+                                                <i class="fas fa-hashtag me-1"></i>ID
+                                            </th>
+                                            <th>
+                                                <i class="fas fa-ring me-1"></i>Tên sản phẩm
+                                            </th>
+                                            <th width="150">
+                                                <i class="fas fa-barcode me-1"></i>Mã SKU
+                                            </th>
+                                            <th width="150">
+                                                <i class="fas fa-tags me-1"></i>Danh mục
+                                            </th>
+                                            <th width="130" class="text-end">
+                                                <i class="fas fa-money-bill-wave me-1"></i>Giá bán
+                                            </th>
+                                            <th width="120" class="text-center">
+                                                <i class="fas fa-toggle-on me-1"></i>Trạng thái
+                                            </th>
+                                            <th width="140" class="text-center">
+                                                <i class="fas fa-cogs me-1"></i>Thao tác
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="templatesTable">
+                                        <tr>
+                                            <td colspan="7" class="text-center py-5">
+                                                <div class="loading-gem"></div>
+                                                <p class="mt-3 text-muted">Đang tải dữ liệu...</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// =============================================================================
+// GLOBAL VARIABLES
+// =============================================================================
+let currentTab = 'groups';
+let groups = [];
+let attributes = [];
+let templates = [];
+let categories = [];
+let isEditingGroup = false;
+let isEditingAttribute = false;
+let isEditingTemplate = false;
+
+// =============================================================================
+// INITIALIZATION
+// =============================================================================
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tab switching
+    initTabSwitching();
+    
+    // Load initial data
+    loadGroups();
+    loadCategories();
+    
+    // Setup form event listeners
+    setupFormListeners();
+});
+
+function initTabSwitching() {
+    document.querySelectorAll('input[name="mainTab"]').forEach(tab => {
+        tab.addEventListener('change', function() {
+            switchTab(this.id.replace('Tab', ''));
+        });
+    });
+}
+
+function switchTab(tab) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.style.display = 'none';
+    });
+    
+    // Show selected tab content
+    document.getElementById(tab + 'Content').style.display = 'block';
+    currentTab = tab;
+    
+    // Load data for the selected tab
+    if (tab === 'groups') {
+        loadGroups();
+    } else if (tab === 'attributes') {
+        loadAttributes();
+        loadGroupOptions();
+    } else if (tab === 'templates') {
+        loadTemplates();
+        loadCategoryOptions();
+    }
+}
+
+function setupFormListeners() {
+    // Attribute field type change listener
+    document.getElementById('attributeFieldType').addEventListener('change', function() {
+        const selectionGroup = document.getElementById('attributeSelectionOptionsGroup');
+        if (this.value === 'selection') {
+            selectionGroup.style.display = 'block';
+        } else {
+            selectionGroup.style.display = 'none';
+        }
+    });
+}
+
+// =============================================================================
+// 1. NHÓM THUỘC TÍNH MANAGEMENT
+// =============================================================================
+
+async function loadGroups() {
+    try {
+        const response = await fetch('/api/attribute-groups');
+        const data = await response.json();
+        
+        if (data.success) {
+            groups = data.data;
+            renderGroupsTable();
+        } else {
+            showMessage('Lỗi khi tải nhóm thuộc tính: ' + data.error, 'danger');
+        }
+    } catch (error) {
+        showMessage('Lỗi kết nối: ' + error.message, 'danger');
+    }
+}
+
+function renderGroupsTable() {
+    const tbody = document.getElementById('groupsTable');
+    tbody.innerHTML = '';
+    
+    if (groups.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-5">
+                    <div style="color: var(--primary-gold);">
+                        <i class="fas fa-gem fa-3x mb-3"></i><br>
+                        <h6 class="text-muted">Chưa có nhóm thuộc tính nào</h6>
+                        <p class="text-muted small">Bấm "Tạo nhóm mới" để bắt đầu</p>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    groups.forEach(group => {
+        const row = document.createElement('tr');
+        
+        row.innerHTML = `
+            <td class="text-center">
+                <span class="jewelry-badge-gold">${group.id}</span>
+            </td>
+            <td>
+                <div class="d-flex align-items-center">
+                    <span class="gem-icon me-3" style="width: 30px; height: 30px; font-size: 12px;">
+                        <i class="fas fa-layer-group"></i>
+                    </span>
+                    <div>
+                        <div class="fw-bold text-dark">${group.name}</div>
+                        ${group.sequence ? `<small class="text-muted">Thứ tự: ${group.sequence}</small>` : ''}
+                    </div>
+                </div>
+            </td>
+            <td>
+                <div class="text-muted">${group.description || '<em>Chưa có mô tả</em>'}</div>
+            </td>
+            <td class="text-center">
+                <span class="jewelry-badge-ruby">${group.attribute_count || 0}</span>
+            </td>
+            <td class="text-center">
+                ${group.active ? 
+                    '<span class="jewelry-badge-success"><i class="fas fa-check-circle me-1"></i>Hoạt động</span>' : 
+                    '<span class="jewelry-badge-secondary"><i class="fas fa-pause-circle me-1"></i>Tạm dừng</span>'
+                }
+            </td>
+            <td class="text-center">
+                <div class="d-flex gap-1 justify-content-center">
+                    <button class="jewelry-btn-outline btn-sm" onclick="editGroup(${group.id})" title="Sửa nhóm">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="jewelry-btn-outline btn-sm text-danger border-danger" onclick="deleteGroup(${group.id})" title="Xóa nhóm">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+}
+
+function showCreateGroupForm() {
+    isEditingGroup = false;
+    document.getElementById('groupFormTitle').textContent = 'Tạo Nhóm Thuộc tính Mới';
+    document.getElementById('groupSubmitBtnText').textContent = 'Tạo';
+    document.getElementById('groupFormElement').reset();
+    document.getElementById('groupId').value = '';
+    document.getElementById('groupActive').checked = true;
+    document.getElementById('groupForm').style.display = 'block';
+    document.getElementById('groupName').focus();
+}
+
+function editGroup(id) {
+    isEditingGroup = true;
+    const group = groups.find(g => g.id === id);
+    if (!group) return;
+    
+    document.getElementById('groupFormTitle').textContent = 'Sửa Nhóm Thuộc tính';
+    document.getElementById('groupSubmitBtnText').textContent = 'Cập nhật';
+    
+    document.getElementById('groupId').value = group.id;
+    document.getElementById('groupName').value = group.name || '';
+    document.getElementById('groupDescription').value = group.description || '';
+    document.getElementById('groupSequence').value = group.sequence || 10;
+    document.getElementById('groupActive').checked = group.active !== false;
+    
+    document.getElementById('groupForm').style.display = 'block';
+    document.getElementById('groupName').focus();
+}
+
+function hideGroupForm() {
+    document.getElementById('groupForm').style.display = 'none';
+}
+
+async function submitGroup(e) {
+    e.preventDefault();
+    
+    try {
+        const formData = {
+            name: document.getElementById('groupName').value,
+            description: document.getElementById('groupDescription').value || null,
+            sequence: parseInt(document.getElementById('groupSequence').value) || 10,
+            active: document.getElementById('groupActive').checked
+        };
+        
+        const groupId = document.getElementById('groupId').value;
+        let url = '/api/attribute-groups';
+        let method = 'POST';
+        
+        if (isEditingGroup && groupId) {
+            url += `/${groupId}`;
+            method = 'PUT';
+        }
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showMessage(data.message || (isEditingGroup ? 'Cập nhật thành công!' : 'Tạo thành công!'), 'success');
+            hideGroupForm();
+            loadGroups();
+        } else {
+            showMessage('Lỗi: ' + data.error, 'danger');
+        }
+    } catch (error) {
+        showMessage('Lỗi kết nối: ' + error.message, 'danger');
+    }
+}
+
+async function deleteGroup(id) {
+    if (!confirm('Bạn có chắc chắn muốn xóa nhóm thuộc tính này?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/attribute-groups/${id}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showMessage(data.message || 'Xóa thành công!', 'success');
+            loadGroups();
+        } else {
+            showMessage('Lỗi khi xóa: ' + data.error, 'danger');
+        }
+    } catch (error) {
+        showMessage('Lỗi kết nối: ' + error.message, 'danger');
+    }
+}
+
+function filterGroups() {
+    const searchTerm = document.getElementById('groupSearchInput').value.toLowerCase();
+    const tbody = document.getElementById('groupsTable');
+    const rows = tbody.querySelectorAll('tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        if (text.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// =============================================================================
+// 2. THUỘC TÍNH MANAGEMENT
+// =============================================================================
+
+async function loadAttributes() {
+    try {
+        const response = await fetch('/api/attributes');
+        const data = await response.json();
+        
+        if (data.success) {
+            attributes = data.data;
+            renderAttributesTable();
+        } else {
+            showMessage('Lỗi khi tải thuộc tính: ' + data.error, 'danger');
+        }
+    } catch (error) {
+        showMessage('Lỗi kết nối: ' + error.message, 'danger');
+    }
+}
+
+async function loadGroupOptions() {
+    try {
+        const response = await fetch('/api/attribute-groups');
+        const data = await response.json();
+        
+        if (data.success) {
+            const select = document.getElementById('attributeGroupId');
+            const filterSelect = document.getElementById('attributeGroupFilter');
+            
+            select.innerHTML = '<option value="">-- Chọn nhóm --</option>';
+            filterSelect.innerHTML = '<option value="">Tất cả nhóm</option>';
+            
+            data.data.forEach(group => {
+                const option = document.createElement('option');
+                option.value = group.id;
+                option.textContent = group.name;
+                select.appendChild(option);
+                
+                const filterOption = document.createElement('option');
+                filterOption.value = group.id;
+                filterOption.textContent = group.name;
+                filterSelect.appendChild(filterOption);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading group options:', error);
+    }
+}
+
+function renderAttributesTable() {
+    const tbody = document.getElementById('attributesTable');
+    tbody.innerHTML = '';
+    
+    if (attributes.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-5">
+                    <div style="color: var(--ruby-red);">
+                        <i class="fas fa-atom fa-3x mb-3"></i><br>
+                        <h6 class="text-muted">Chưa có đặc tính kim loại nào</h6>
+                        <p class="text-muted small">Bấm "Tạo đặc tính" để bắt đầu</p>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    attributes.forEach(attr => {
+        const row = document.createElement('tr');
+        
+        // Field type labels with icons
+        const fieldTypeLabels = {
+            'char': '<i class="fas fa-font me-1"></i>Văn bản',
+            'float': '<i class="fas fa-calculator me-1"></i>Số thập phân', 
+            'integer': '<i class="fas fa-hashtag me-1"></i>Số nguyên',
+            'boolean': '<i class="fas fa-toggle-on me-1"></i>Đúng/Sai',
+            'date': '<i class="fas fa-calendar me-1"></i>Ngày',
+            'selection': '<i class="fas fa-list me-1"></i>Lựa chọn'
+        };
+        
+        row.innerHTML = `
+            <td class="text-center">
+                <span class="jewelry-badge-ruby">${attr.id}</span>
+            </td>
+            <td>
+                <div class="d-flex align-items-center">
+                    <span class="gem-icon ruby-icon me-3" style="width: 30px; height: 30px; font-size: 12px;">
+                        <i class="fas fa-tags"></i>
+                    </span>
+                    <div>
+                        <div class="fw-bold text-dark">${attr.name}</div>
+                        ${attr.display_name ? `<small class="text-muted">${attr.display_name}</small>` : ''}
+                        ${attr.unit ? `<br><small class="text-info"><i class="fas fa-ruler-horizontal me-1"></i>${attr.unit}</small>` : ''}
+                    </div>
+                </div>
+            </td>
+            <td>
+                <span class="jewelry-badge-success">${fieldTypeLabels[attr.field_type] || attr.field_type}</span>
+                ${attr.required ? '<br><span class="jewelry-badge-gold mt-1"><i class="fas fa-exclamation me-1"></i>Bắt buộc</span>' : ''}
+            </td>
+            <td>
+                ${attr.group_name ? `<span class="jewelry-badge-gold">${attr.group_name}</span>` : '<em class="text-muted">Chưa phân nhóm</em>'}
+            </td>
+            <td class="text-center">
+                ${attr.active ? 
+                    '<span class="jewelry-badge-success"><i class="fas fa-check-circle me-1"></i>Hoạt động</span>' : 
+                    '<span class="jewelry-badge-secondary"><i class="fas fa-pause-circle me-1"></i>Tạm dừng</span>'
+                }
+            </td>
+            <td class="text-center">
+                <div class="d-flex gap-1 justify-content-center">
+                    <button class="jewelry-btn-outline btn-sm" onclick="editAttribute(${attr.id})" title="Sửa đặc tính">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="jewelry-btn-outline btn-sm text-danger border-danger" onclick="deleteAttribute(${attr.id})" title="Xóa đặc tính">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+}
+
+function showCreateAttributeForm() {
+    isEditingAttribute = false;
+    document.getElementById('attributeFormTitle').textContent = 'Tạo Đặc tính Kim loại Mới';
+    document.getElementById('attributeSubmitBtnText').textContent = 'Tạo';
+    document.getElementById('attributeFormElement').reset();
+    document.getElementById('attributeId').value = '';
+    document.getElementById('attributeActive').checked = true;
+    document.getElementById('attributeEditable').checked = true;
+    document.getElementById('attributeForm').style.display = 'block';
+    document.getElementById('attributeName').focus();
+}
+
+function editAttribute(id) {
+    isEditingAttribute = true;
+    const attr = attributes.find(a => a.id === id);
+    if (!attr) return;
+    
+    document.getElementById('attributeFormTitle').textContent = 'Sửa Đặc tính Kim loại';
+    document.getElementById('attributeSubmitBtnText').textContent = 'Cập nhật';
+    
+    document.getElementById('attributeId').value = attr.id;
+    document.getElementById('attributeName').value = attr.name || '';
+    document.getElementById('attributeDisplayName').value = attr.display_name || '';
+    document.getElementById('attributeFieldType').value = attr.field_type || '';
+    document.getElementById('attributeGroupId').value = attr.group_id ? attr.group_id[0] : '';
+    document.getElementById('attributeUnit').value = attr.unit || '';
+    document.getElementById('attributeCategory').value = attr.category || '';
+    document.getElementById('attributeDefaultValue').value = attr.default_value || '';
+    document.getElementById('attributeSelectionOptions').value = attr.selection_options || '';
+    document.getElementById('attributeDescription').value = attr.description || '';
+    document.getElementById('attributeRequired').checked = attr.required || false;
+    document.getElementById('attributeEditable').checked = attr.editable !== false;
+    document.getElementById('attributeActive').checked = attr.active !== false;
+    
+    // Show/hide selection options
+    const selectionGroup = document.getElementById('attributeSelectionOptionsGroup');
+    if (attr.field_type === 'selection') {
+        selectionGroup.style.display = 'block';
+    } else {
+        selectionGroup.style.display = 'none';
+    }
+    
+    document.getElementById('attributeForm').style.display = 'block';
+    document.getElementById('attributeName').focus();
+}
+
+function hideAttributeForm() {
+    document.getElementById('attributeForm').style.display = 'none';
+}
+
+async function submitAttribute(e) {
+    e.preventDefault();
+    
+    try {
+        const formData = {
+            name: document.getElementById('attributeName').value,
+            display_name: document.getElementById('attributeDisplayName').value || null,
+            field_type: document.getElementById('attributeFieldType').value,
+            group_id: document.getElementById('attributeGroupId').value ? parseInt(document.getElementById('attributeGroupId').value) : null,
+            unit: document.getElementById('attributeUnit').value || null,
+            category: document.getElementById('attributeCategory').value || null,
+            default_value: document.getElementById('attributeDefaultValue').value || null,
+            selection_options: document.getElementById('attributeSelectionOptions').value || null,
+            description: document.getElementById('attributeDescription').value || null,
+            required: document.getElementById('attributeRequired').checked,
+            editable: document.getElementById('attributeEditable').checked,
+            active: document.getElementById('attributeActive').checked
+        };
+        
+        const attributeId = document.getElementById('attributeId').value;
+        let url = '/api/attributes';
+        let method = 'POST';
+        
+        if (isEditingAttribute && attributeId) {
+            url += `/${attributeId}`;
+            method = 'PUT';
+        }
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showMessage(data.message || (isEditingAttribute ? 'Cập nhật thành công!' : 'Tạo thành công!'), 'success');
+            hideAttributeForm();
+            loadAttributes();
+        } else {
+            showMessage('Lỗi: ' + data.error, 'danger');
+        }
+    } catch (error) {
+        showMessage('Lỗi kết nối: ' + error.message, 'danger');
+    }
+}
+
+async function deleteAttribute(id) {
+    if (!confirm('Bạn có chắc chắn muốn xóa thuộc tính này?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/attributes/${id}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showMessage(data.message || 'Xóa thành công!', 'success');
+            loadAttributes();
+        } else {
+            showMessage('Lỗi khi xóa: ' + data.error, 'danger');
+        }
+    } catch (error) {
+        showMessage('Lỗi kết nối: ' + error.message, 'danger');
+    }
+}
+
+function filterAttributes() {
+    const searchTerm = document.getElementById('attributeSearchInput').value.toLowerCase();
+    const groupFilter = document.getElementById('attributeGroupFilter').value;
+    const tbody = document.getElementById('attributesTable');
+    const rows = tbody.querySelectorAll('tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const cells = row.querySelectorAll('td');
+        let showRow = true;
+        
+        // Search filter
+        if (searchTerm && !text.includes(searchTerm)) {
+            showRow = false;
+        }
+        
+        // Group filter
+        if (groupFilter && cells.length > 3) {
+            const groupCell = cells[3];
+            const groupBadge = groupCell.querySelector('.badge');
+            if (!groupBadge || !groupBadge.textContent.includes(groupFilter)) {
+                showRow = false;
+            }
+        }
+        
+        row.style.display = showRow ? '' : 'none';
+    });
+}
+
+// =============================================================================
+// 3. MÃ MẪU SẢN PHẨM MANAGEMENT
+// =============================================================================
+
+async function loadTemplates() {
+    try {
+        const response = await fetch('/api/product-templates');
+        const data = await response.json();
+        
+        if (data.success) {
+            templates = data.data;
+            renderTemplatesTable();
+        } else {
+            showMessage('Lỗi khi tải mã mẫu sản phẩm: ' + data.error, 'danger');
+        }
+    } catch (error) {
+        showMessage('Lỗi kết nối: ' + error.message, 'danger');
+    }
+}
+
+async function loadCategories() {
+    try {
+        const response = await fetch('/api/options/categories');
+        const data = await response.json();
+        
+        if (data.success) {
+            categories = data.data;
+        }
+    } catch (error) {
+        console.error('Error loading categories:', error);
+    }
+}
+
+async function loadCategoryOptions() {
+    try {
+        const response = await fetch('/api/options/categories');
+        const data = await response.json();
+        
+        if (data.success) {
+            const select = document.getElementById('templateCategId');
+            const filterSelect = document.getElementById('templateCategoryFilter');
+            
+            select.innerHTML = '<option value="">-- Chọn danh mục --</option>';
+            filterSelect.innerHTML = '<option value="">Tất cả danh mục</option>';
+            
+            data.data.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.complete_name || category.name;
+                select.appendChild(option);
+                
+                const filterOption = document.createElement('option');
+                filterOption.value = category.id;
+                filterOption.textContent = category.complete_name || category.name;
+                filterSelect.appendChild(filterOption);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading category options:', error);
+    }
+}
+
+function renderTemplatesTable() {
+    const tbody = document.getElementById('templatesTable');
+    tbody.innerHTML = '';
+    
+    if (templates.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-5">
+                    <div style="color: var(--primary-gold);">
+                        <i class="fas fa-ring fa-3x mb-3"></i><br>
+                        <h6 class="text-muted">Chưa có mẫu trang sức nào</h6>
+                        <p class="text-muted small">Bấm "Tạo mẫu mới" để bắt đầu</p>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    templates.forEach(template => {
+        const row = document.createElement('tr');
+        
+        row.innerHTML = `
+            <td class="text-center">
+                <span class="jewelry-badge-gold">${template.id}</span>
+            </td>
+            <td>
+                <div class="d-flex align-items-center">
+                    <span class="gem-icon me-3" style="width: 30px; height: 30px; font-size: 12px;">
+                        <i class="fas fa-ring"></i>
+                    </span>
+                    <div>
+                        <div class="fw-bold text-dark">${template.name}</div>
+                        ${template.default_code ? `<small class="text-muted"><i class="fas fa-barcode me-1"></i>${template.default_code}</small>` : ''}
+                    </div>
+                </div>
+            </td>
+            <td class="text-muted">${template.default_code || '<em>Chưa có SKU</em>'}</td>
+            <td>
+                ${template.categ_name ? `<span class="jewelry-badge-ruby">${template.categ_name}</span>` : '<em class="text-muted">Chưa phân loại</em>'}
+            </td>
+            <td class="text-end">
+                ${template.list_price ? 
+                    `<span class="fw-bold text-success">${new Intl.NumberFormat('vi-VN').format(template.list_price)} ₫</span>` : 
+                    '<em class="text-muted">Chưa định giá</em>'
+                }
+            </td>
+            <td class="text-center">
+                ${template.active ? 
+                    '<span class="jewelry-badge-success"><i class="fas fa-check-circle me-1"></i>Hoạt động</span>' : 
+                    '<span class="jewelry-badge-secondary"><i class="fas fa-pause-circle me-1"></i>Tạm dừng</span>'
+                }
+            </td>
+            <td class="text-center">
+                <div class="d-flex gap-1 justify-content-center">
+                    <button class="jewelry-btn-outline btn-sm" onclick="editTemplate(${template.id})" title="Sửa mẫu">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="jewelry-btn-outline btn-sm text-danger border-danger" onclick="deleteTemplate(${template.id})" title="Xóa mẫu">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+}
+
+function showCreateTemplateForm() {
+    isEditingTemplate = false;
+    document.getElementById('templateFormTitle').textContent = 'Tạo Mẫu Trang sức Mới';
+    document.getElementById('templateSubmitBtnText').textContent = 'Tạo';
+    document.getElementById('templateFormElement').reset();
+    document.getElementById('templateId').value = '';
+    document.getElementById('templateType').value = 'product';
+    document.getElementById('templateSaleOk').checked = true;
+    document.getElementById('templatePurchaseOk').checked = true;
+    document.getElementById('templateActive').checked = true;
+    document.getElementById('templateForm').style.display = 'block';
+    document.getElementById('templateName').focus();
+}
+
+function editTemplate(id) {
+    isEditingTemplate = true;
+    const template = templates.find(t => t.id === id);
+    if (!template) return;
+    
+    document.getElementById('templateFormTitle').textContent = 'Sửa Mẫu Trang sức';
+    document.getElementById('templateSubmitBtnText').textContent = 'Cập nhật';
+    
+    document.getElementById('templateId').value = template.id;
+    document.getElementById('templateName').value = template.name || '';
+    document.getElementById('templateDefaultCode').value = template.default_code || '';
+    document.getElementById('templateCategId').value = template.categ_id ? template.categ_id[0] : '';
+    document.getElementById('templateType').value = template.type || 'product';
+    document.getElementById('templateListPrice').value = template.list_price || '';
+    document.getElementById('templateStandardPrice').value = template.standard_price || '';
+    document.getElementById('templateWeight').value = template.weight || '';
+    document.getElementById('templateBarcode').value = template.barcode || '';
+    document.getElementById('templateDescription').value = template.description || '';
+    document.getElementById('templateSaleOk').checked = template.sale_ok !== false;
+    document.getElementById('templatePurchaseOk').checked = template.purchase_ok !== false;
+    document.getElementById('templateActive').checked = template.active !== false;
+    
+    document.getElementById('templateForm').style.display = 'block';
+    document.getElementById('templateName').focus();
+}
+
+function hideTemplateForm() {
+    document.getElementById('templateForm').style.display = 'none';
+}
+
+async function submitTemplate(e) {
+    e.preventDefault();
+    
+    try {
+        const formData = {
+            name: document.getElementById('templateName').value,
+            default_code: document.getElementById('templateDefaultCode').value || null,
+            categ_id: document.getElementById('templateCategId').value ? parseInt(document.getElementById('templateCategId').value) : null,
+            type: document.getElementById('templateType').value,
+            list_price: document.getElementById('templateListPrice').value ? parseFloat(document.getElementById('templateListPrice').value) : null,
+            standard_price: document.getElementById('templateStandardPrice').value ? parseFloat(document.getElementById('templateStandardPrice').value) : null,
+            weight: document.getElementById('templateWeight').value ? parseFloat(document.getElementById('templateWeight').value) : null,
+            barcode: document.getElementById('templateBarcode').value || null,
+            description: document.getElementById('templateDescription').value || null,
+            sale_ok: document.getElementById('templateSaleOk').checked,
+            purchase_ok: document.getElementById('templatePurchaseOk').checked,
+            active: document.getElementById('templateActive').checked
+        };
+        
+        const templateId = document.getElementById('templateId').value;
+        let url = '/api/product-templates';
+        let method = 'POST';
+        
+        if (isEditingTemplate && templateId) {
+            url += `/${templateId}`;
+            method = 'PUT';
+        }
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showMessage(data.message || (isEditingTemplate ? 'Cập nhật thành công!' : 'Tạo thành công!'), 'success');
+            hideTemplateForm();
+            loadTemplates();
+        } else {
+            showMessage('Lỗi: ' + data.error, 'danger');
+        }
+    } catch (error) {
+        showMessage('Lỗi kết nối: ' + error.message, 'danger');
+    }
+}
+
+async function deleteTemplate(id) {
+    if (!confirm('Bạn có chắc chắn muốn xóa mã mẫu sản phẩm này?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/product-templates/${id}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showMessage(data.message || 'Xóa thành công!', 'success');
+            loadTemplates();
+        } else {
+            showMessage('Lỗi khi xóa: ' + data.error, 'danger');
+        }
+    } catch (error) {
+        showMessage('Lỗi kết nối: ' + error.message, 'danger');
+    }
+}
+
+function filterTemplates() {
+    const searchTerm = document.getElementById('templateSearchInput').value.toLowerCase();
+    const categoryFilter = document.getElementById('templateCategoryFilter').value;
+    const tbody = document.getElementById('templatesTable');
+    const rows = tbody.querySelectorAll('tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const cells = row.querySelectorAll('td');
+        let showRow = true;
+        
+        // Search filter
+        if (searchTerm && !text.includes(searchTerm)) {
+            showRow = false;
+        }
+        
+        // Category filter
+        if (categoryFilter && cells.length > 3) {
+            const categoryCell = cells[3];
+            const categoryBadge = categoryCell.querySelector('.badge');
+            if (!categoryBadge || !categoryBadge.textContent.includes(categoryFilter)) {
+                showRow = false;
+            }
+        }
+        
+        row.style.display = showRow ? '' : 'none';
+    });
+}
+
+// =============================================================================
+// UTILITY FUNCTIONS
+// =============================================================================
+
+function showMessage(message, type) {
+    const alertClass = type === 'success' ? 'jewelry-alert-success' : 'jewelry-alert-danger';
+    const iconClass = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-triangle';
+    
+    const html = `
+        <div class="jewelry-alert ${alertClass} alert-dismissible fade show" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="${iconClass} me-2"></i>
+                <div>${message}</div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    document.getElementById('statusMessages').innerHTML = html;
+    
+    // Auto dismiss after 5 seconds
+    setTimeout(() => {
+        const alert = document.querySelector('#statusMessages .alert');
+        if (alert) {
+            alert.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

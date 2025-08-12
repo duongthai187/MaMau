@@ -10,14 +10,11 @@ from kafka import KafkaProducer
 from typing import List
 
 class PricingDataProducer:
-    """Producer để bắn pricing data liên tục"""
-    
     def __init__(self, bootstrap_servers: str = 'localhost:9092'):
         self.bootstrap_servers = bootstrap_servers
         self.producer = None
         self.running = False
         
-        # Sample product SKUs
         self.product_skus = [
             "RING_GOLD_001", "RING_GOLD_002", "RING_SILVER_001",
             "NECKLACE_GOLD_001", "BRACELET_GOLD_001", "EARRING_SILVER_001",

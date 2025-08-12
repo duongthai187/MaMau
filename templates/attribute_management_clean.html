@@ -1,0 +1,554 @@
+{% extends "base.html" %}
+
+{% block title %}Quản lý Trang sức & Đá quý{% endblock %}
+
+{% block content %}
+<style>
+/* =============================================
+   JEWELRY & GEMSTONE THEME - LIGHT VERSION
+   ============================================= */
+:root {
+    --primary-gold: #F39C12;
+    --light-gold: #F8C471;
+    --dark-gold: #D4AC0D;
+    --primary-red: #E74C3C;
+    --light-red: #F1948A;
+    --dark-red: #C0392B;
+    --background-light: #FDFEFE;
+    --background-cream: #FDF2E9;
+    --text-dark: #2C3E50;
+    --text-muted: #7B7D7D;
+    --border-light: #E8E8E8;
+    --shadow-light: 0 2px 8px rgba(0,0,0,0.1);
+    --shadow-gold: 0 4px 12px rgba(243, 156, 18, 0.3);
+    --shadow-red: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+body {
+    background-color: var(--background-light);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.jewelry-container {
+    background-color: var(--background-light);
+    min-height: 100vh;
+    padding: 2rem 0;
+}
+
+.jewelry-header {
+    background: linear-gradient(135deg, var(--primary-gold) 0%, var(--light-gold) 100%);
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-gold);
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+}
+
+.jewelry-title {
+    font-weight: 700;
+    margin: 0;
+    font-size: 2.5rem;
+}
+
+.jewelry-tabs {
+    background: white;
+    border-radius: 12px;
+    padding: 0.5rem;
+    box-shadow: var(--shadow-light);
+    border: 1px solid var(--border-light);
+    margin-bottom: 2rem;
+}
+
+.jewelry-tab-btn {
+    background: transparent !important;
+    border: none !important;
+    color: var(--text-dark) !important;
+    font-weight: 600;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    margin: 0 0.25rem;
+}
+
+.jewelry-tab-btn:hover {
+    background: var(--background-cream) !important;
+    color: var(--primary-gold) !important;
+    transform: translateY(-1px);
+}
+
+.jewelry-tab-btn.active {
+    background: linear-gradient(135deg, var(--primary-gold) 0%, var(--dark-gold) 100%) !important;
+    color: white !important;
+    box-shadow: var(--shadow-gold);
+}
+
+.jewelry-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow-light);
+    border: 1px solid var(--border-light);
+    margin-bottom: 2rem;
+    overflow: hidden;
+}
+
+.jewelry-card-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-light);
+    font-weight: 700;
+}
+
+.jewelry-card-header.gold-theme {
+    background: linear-gradient(135deg, var(--primary-gold) 0%, var(--light-gold) 100%);
+    color: white;
+    border-bottom: none;
+}
+
+.jewelry-card-header.red-theme {
+    background: linear-gradient(135deg, var(--primary-red) 0%, var(--light-red) 100%);
+    color: white;
+    border-bottom: none;
+}
+
+.jewelry-btn-primary {
+    background: linear-gradient(135deg, var(--primary-gold) 0%, var(--dark-gold) 100%) !important;
+    border: none !important;
+    color: white !important;
+    font-weight: 600;
+    padding: 0.7rem 1.5rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.jewelry-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-gold);
+    color: white !important;
+}
+
+.jewelry-btn-secondary {
+    background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%) !important;
+    border: none !important;
+    color: white !important;
+    font-weight: 600;
+    padding: 0.7rem 1.5rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.jewelry-btn-secondary:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-red);
+    color: white !important;
+}
+
+.jewelry-btn-outline {
+    background: white !important;
+    border: 2px solid var(--primary-gold) !important;
+    color: var(--primary-gold) !important;
+    font-weight: 600;
+    padding: 0.5rem 1.2rem;
+    border-radius: 8px;
+}
+
+.jewelry-form-control {
+    border: 2px solid var(--border-light);
+    border-radius: 8px;
+    padding: 0.75rem;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.jewelry-form-control:focus {
+    border-color: var(--primary-gold);
+    box-shadow: 0 0 0 0.2rem rgba(243, 156, 18, 0.25);
+}
+
+.jewelry-table {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow-light);
+}
+
+.jewelry-table thead {
+    background: linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%);
+    color: var(--text-dark);
+    font-weight: 700;
+}
+
+.jewelry-table tbody tr {
+    border-bottom: 1px solid var(--border-light);
+}
+
+.gem-icon {
+    background: linear-gradient(135deg, var(--primary-gold) 0%, var(--dark-gold) 100%);
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    box-shadow: var(--shadow-gold);
+}
+
+.ruby-icon {
+    background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%);
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(243, 156, 18, 0.3);
+    border-radius: 50%;
+    border-top-color: var(--primary-gold);
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .jewelry-container {
+        padding: 1rem 0;
+    }
+    
+    .jewelry-header {
+        padding: 1.5rem;
+        text-align: center;
+    }
+    
+    .jewelry-title {
+        font-size: 2rem;
+    }
+    
+    .jewelry-tabs {
+        flex-direction: column;
+    }
+    
+    .jewelry-tab-btn {
+        margin-bottom: 0.5rem;
+        text-align: center;
+    }
+}
+</style>
+
+<div class="jewelry-container">
+    <div class="container-fluid">
+        <!-- Status Messages -->
+        <div id="statusMessages"></div>
+        
+        <!-- Header Section -->
+        <div class="jewelry-header">
+            <h1 class="jewelry-title">
+                <span class="gem-icon">
+                    <i class="fas fa-gem"></i>
+                </span>
+                Quản lý Trang sức & Đá quý
+            </h1>
+            <p class="mt-2 mb-0 opacity-90">
+                <i class="fas fa-sparkles me-2"></i>
+                Hệ thống quản lý chuyên nghiệp cho ngành trang sức
+            </p>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="jewelry-tabs d-flex justify-content-center flex-wrap">
+            <input type="radio" class="btn-check" name="mainTab" id="groupsTab" checked>
+            <label class="jewelry-tab-btn" for="groupsTab">
+                <i class="fas fa-layer-group me-2"></i>
+                Nhóm Thuộc tính
+            </label>
+        </div>
+
+        <!-- Tab Content Areas -->
+        <div class="container-fluid">
+            
+            <!-- Tab 1: Attribute Groups -->
+            <div id="groupsContent" class="tab-content active">
+                <div class="row">
+                    <!-- Left Column: Form -->
+                    <div class="col-lg-5 mb-4">
+                        <div class="jewelry-card">
+                            <div class="jewelry-card-header gold-theme">
+                                <h5 class="mb-0">
+                                    <span class="gem-icon">
+                                        <i class="fas fa-layer-group"></i>
+                                    </span>
+                                    Tạo / Chỉnh sửa Nhóm Thuộc tính
+                                </h5>
+                            </div>
+                            <div class="card-body p-4">
+                                <form id="groupForm">
+                                    <input type="hidden" id="groupId" name="id">
+                                    
+                                    <div class="mb-3">
+                                        <label for="groupName" class="form-label fw-bold">Tên nhóm thuộc tính</label>
+                                        <input type="text" class="form-control jewelry-form-control" 
+                                               id="groupName" name="name" required
+                                               placeholder="Ví dụ: Kim loại quý, Đá quý...">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="groupSequence" class="form-label fw-bold">Thứ tự hiển thị</label>
+                                        <input type="number" class="form-control jewelry-form-control" 
+                                               id="groupSequence" name="sequence" 
+                                               placeholder="Nhập số thứ tự (1, 2, 3...)">
+                                    </div>
+                                    
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" class="btn jewelry-btn-primary flex-fill">
+                                            <i class="fas fa-save me-2"></i>
+                                            <span id="groupSubmitText">Tạo nhóm</span>
+                                        </button>
+                                        <button type="button" class="btn jewelry-btn-secondary" id="resetGroupForm">
+                                            <i class="fas fa-times me-2"></i>Hủy
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Column: List -->
+                    <div class="col-lg-7">
+                        <div class="jewelry-card">
+                            <div class="jewelry-card-header red-theme d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <span class="gem-icon ruby-icon">
+                                        <i class="fas fa-list"></i>
+                                    </span>
+                                    Danh sách Nhóm Thuộc tính
+                                </h5>
+                                <button class="btn jewelry-btn-outline" onclick="loadGroups()">
+                                    <i class="fas fa-sync-alt me-2"></i>Tải lại
+                                </button>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table jewelry-table mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th width="10%">ID</th>
+                                                <th width="50%">Tên nhóm</th>
+                                                <th width="15%">Thứ tự</th>
+                                                <th width="25%">Thao tác</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="groupsTableBody">
+                                            <tr>
+                                                <td colspan="4" class="text-center p-4">
+                                                    <div class="loading-spinner"></div>
+                                                    <span class="ms-2 text-muted">Đang tải dữ liệu...</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// =============================================
+// TAB FUNCTIONALITY
+// =============================================
+document.addEventListener('DOMContentLoaded', function() {
+    // Tab switching
+    const tabs = document.querySelectorAll('input[name="mainTab"]');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('change', function() {
+            // Hide all content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+                content.style.display = 'none';
+            });
+            
+            // Update tab buttons
+            document.querySelectorAll('.jewelry-tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected content and update button
+            const targetId = this.id.replace('Tab', 'Content');
+            const targetContent = document.getElementById(targetId);
+            const targetBtn = document.querySelector(`label[for="${this.id}"]`);
+            
+            if (targetContent) {
+                targetContent.classList.add('active');
+                targetContent.style.display = 'block';
+            }
+            
+            if (targetBtn) {
+                targetBtn.classList.add('active');
+            }
+        });
+    });
+    
+    // Initialize first tab
+    document.getElementById('groupsContent').style.display = 'block';
+    document.querySelector('label[for="groupsTab"]').classList.add('active');
+    
+    // Load initial data
+    loadGroups();
+});
+
+// =============================================
+// GROUP MANAGEMENT FUNCTIONS
+// =============================================
+async function loadGroups() {
+    const tbody = document.getElementById('groupsTableBody');
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4"><div class="loading-spinner"></div><span class="ms-2 text-muted">Đang tải dữ liệu...</span></td></tr>';
+    
+    try {
+        const response = await fetch('/api/attribute-groups');
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            if (result.data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-muted">Chưa có nhóm thuộc tính nào</td></tr>';
+            } else {
+                tbody.innerHTML = result.data.map(group => `
+                    <tr>
+                        <td>${group.id}</td>
+                        <td>${group.name}</td>
+                        <td>${group.sequence || ''}</td>
+                        <td>
+                            <button class="btn btn-sm jewelry-btn-primary me-1" onclick="editGroup(${group.id}, '${group.name}', ${group.sequence || 1})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm jewelry-btn-secondary" onclick="deleteGroup(${group.id}, '${group.name}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        } else {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-danger">Lỗi tải dữ liệu</td></tr>';
+        }
+    } catch (error) {
+        console.error('Error loading groups:', error);
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-danger">Lỗi kết nối đến server</td></tr>';
+    }
+}
+
+function editGroup(id, name, sequence) {
+    document.getElementById('groupId').value = id;
+    document.getElementById('groupName').value = name;
+    document.getElementById('groupSequence').value = sequence;
+    document.getElementById('groupSubmitText').textContent = 'Cập nhật nhóm';
+}
+
+async function deleteGroup(id, name) {
+    if (confirm(`Bạn có chắc chắn muốn xóa nhóm "${name}"?`)) {
+        try {
+            const response = await fetch(`/api/attribute-groups/${id}`, {
+                method: 'DELETE'
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                showMessage(result.message || 'Xóa nhóm thuộc tính thành công!', 'success');
+                loadGroups();
+            } else {
+                showMessage(result.message || 'Lỗi khi xóa nhóm thuộc tính', 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting group:', error);
+            showMessage('Lỗi kết nối đến server', 'error');
+        }
+    }
+}
+
+// Form submission
+document.getElementById('groupForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = {
+        name: formData.get('name'),
+        sequence: parseInt(formData.get('sequence')) || 1
+    };
+    
+    const groupId = formData.get('id');
+    const isUpdate = groupId && groupId !== '';
+    
+    try {
+        const url = isUpdate ? `/api/attribute-groups/${groupId}` : '/api/attribute-groups';
+        const method = isUpdate ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage(result.message || (isUpdate ? 'Cập nhật nhóm thuộc tính thành công!' : 'Tạo nhóm thuộc tính thành công!'), 'success');
+            
+            // Reset form
+            this.reset();
+            document.getElementById('groupId').value = '';
+            document.getElementById('groupSubmitText').textContent = 'Tạo nhóm';
+            
+            // Reload data
+            loadGroups();
+        } else {
+            showMessage(result.message || 'Có lỗi xảy ra', 'error');
+        }
+    } catch (error) {
+        console.error('Error submitting form:', error);
+        showMessage('Lỗi kết nối đến server', 'error');
+    }
+});
+
+// Reset form
+document.getElementById('resetGroupForm').addEventListener('click', function() {
+    document.getElementById('groupForm').reset();
+    document.getElementById('groupId').value = '';
+    document.getElementById('groupSubmitText').textContent = 'Tạo nhóm';
+});
+
+// =============================================
+// UTILITY FUNCTIONS
+// =============================================
+function showMessage(message, type = 'success') {
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const iconClass = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+    
+    const messageHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            <i class="fas ${iconClass} me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    document.getElementById('statusMessages').innerHTML = messageHtml;
+    
+    // Auto dismiss after 5 seconds
+    setTimeout(() => {
+        const alert = document.querySelector('.alert');
+        if (alert) {
+            alert.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

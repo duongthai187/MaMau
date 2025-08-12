@@ -1,0 +1,506 @@
+{% extends "base.html" %}
+
+{% block title %}Quản lý Thuộc tính Vàng{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Status Messages -->
+    <div id="statusMessages"></div>
+    
+    <div class="row">
+        <!-- Header Section -->
+        <div class="col-12 mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="text-primary mb-0">
+                        <i class="fas fa-gem me-2"></i>
+                        Quản lý Thuộc tính Vàng
+                    </h2>
+                    <p class="text-muted mb-0">Tạo và quản lý các thuộc tính cho sản phẩm vàng</p>
+                </div>
+                <button class="btn btn-primary" onclick="showCreateForm()">
+                    <i class="fas fa-plus me-2"></i>
+                    Tạo Thuộc tính
+                </button>
+            </div>
+        </div>
+
+        <!-- Create/Edit Form -->
+        <div class="col-12 mb-4">
+            <div class="card shadow-sm" id="attributeForm" style="display: none;">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>
+                        <span id="formTitle">Tạo Thuộc tính Mới</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="attributeFormElement" onsubmit="submitAttribute(event)">
+                        <input type="hidden" id="attributeId">
+                        
+                        <div class="row">
+                            <!-- Basic Information -->
+                            <div class="col-md-6">
+                                <h6 class="text-primary mb-3">Thông tin cơ bản</h6>
+                                
+                                <div class="mb-3">
+                                    <label for="name" class="form-label fw-bold">Tên kỹ thuật <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="name" required>
+                                    <div class="form-text">Tên dùng trong hệ thống (không dấu, viết liền)</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="displayName" class="form-label fw-bold">Tên hiển thị</label>
+                                    <input type="text" class="form-control" id="displayName">
+                                    <div class="form-text">Tên hiển thị cho người dùng</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="shortName" class="form-label fw-bold">Tên viết tắt</label>
+                                    <input type="text" class="form-control" id="shortName">
+                                    <div class="form-text">Tên rút gọn để hiển thị</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="fieldType" class="form-label fw-bold">Kiểu dữ liệu <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="fieldType" required>
+                                        <option value="">-- Chọn kiểu dữ liệu --</option>
+                                        <option value="char">Văn bản</option>
+                                        <option value="float">Số thập phân</option>
+                                        <option value="integer">Số nguyên</option>
+                                        <option value="boolean">Đúng/Sai</option>
+                                        <option value="date">Ngày</option>
+                                        <option value="selection">Lựa chọn</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="groupId" class="form-label fw-bold">Nhóm thuộc tính</label>
+                                    <select class="form-select" id="groupId">
+                                        <option value="">-- Chọn nhóm --</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Extended Information -->
+                            <div class="col-md-6">
+                                <h6 class="text-primary mb-3">Thông tin mở rộng</h6>
+                                
+                                <div class="mb-3">
+                                    <label for="unit" class="form-label fw-bold">Đơn vị tính</label>
+                                    <input type="text" class="form-control" id="unit" placeholder="VD: gram, cm, %">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="category" class="form-label fw-bold">Phân loại</label>
+                                    <select class="form-select" id="category">
+                                        <option value="">-- Chọn phân loại --</option>
+                                        <option value="technical">Kỹ thuật</option>
+                                        <option value="display">Hiển thị</option>
+                                        <option value="document">Tài liệu</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="defaultValue" class="form-label fw-bold">Giá trị mặc định</label>
+                                    <input type="text" class="form-control" id="defaultValue">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="validationRegex" class="form-label fw-bold">Regex kiểm tra</label>
+                                    <input type="text" class="form-control" id="validationRegex" placeholder="VD: ^[0-9]+$">
+                                </div>
+
+                                <div class="mb-3" id="selectionOptionsGroup" style="display: none;">
+                                    <label for="selectionOptions" class="form-label fw-bold">Tùy chọn lựa chọn</label>
+                                    <textarea class="form-control" id="selectionOptions" rows="3" placeholder="VD: tùy_chọn_1,Tùy chọn 1&#10;tùy_chọn_2,Tùy chọn 2"></textarea>
+                                    <div class="form-text">Mỗi dòng: key,label</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    <label for="description" class="form-label fw-bold">Mô tả</label>
+                                    <textarea class="form-control" id="description" rows="2"></textarea>
+                                </div>
+
+                                <!-- Checkboxes -->
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="required">
+                                            <label class="form-check-label" for="required">Bắt buộc</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="editable" checked>
+                                            <label class="form-check-label" for="editable">Cho phép sửa</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="active" checked>
+                                            <label class="form-check-label" for="active">Đang sử dụng</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Form Actions -->
+                                <div class="d-flex gap-2 mt-4">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-1"></i>
+                                        <span id="submitBtnText">Lưu</span>
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" onclick="hideForm()">
+                                        <i class="fas fa-times me-1"></i>
+                                        Hủy
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attributes Table -->
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-list me-2"></i>
+                            Danh sách Thuộc tính
+                        </h5>
+                        <div class="d-flex gap-2">
+                            <input type="text" class="form-control form-control-sm" id="searchInput" 
+                                   placeholder="Tìm kiếm..." style="width: 200px;" onkeyup="filterAttributes()">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="loadAttributes()">
+                                <i class="fas fa-refresh"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Tên</th>
+                                    <th>Kiểu dữ liệu</th>
+                                    <th>Nhóm</th>
+                                    <th>Trạng thái</th>
+                                    <th>Tạo lúc</th>
+                                    <th width="150">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attributesTable">
+                                <tr>
+                                    <td colspan="7" class="text-center py-4">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Đang tải...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let attributes = [];
+let groups = [];
+let isEditing = false;
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadAttributes();
+    loadGroups();
+    
+    // Show/hide selection options based on field type
+    document.getElementById('fieldType').addEventListener('change', function() {
+        const selectionGroup = document.getElementById('selectionOptionsGroup');
+        if (this.value === 'selection') {
+            selectionGroup.style.display = 'block';
+        } else {
+            selectionGroup.style.display = 'none';
+        }
+    });
+});
+
+async function loadAttributes() {
+    try {
+        const response = await fetch('/api/gold-attributes');
+        const data = await response.json();
+        
+        if (data.success) {
+            attributes = data.data;
+            renderAttributesTable();
+        } else {
+            showMessage('Lỗi khi tải thuộc tính: ' + data.error, 'danger');
+        }
+    } catch (error) {
+        showMessage('Lỗi kết nối: ' + error.message, 'danger');
+    }
+}
+
+async function loadGroups() {
+    try {
+        const response = await fetch('/api/attribute-groups');
+        const data = await response.json();
+        
+        if (data.success) {
+            groups = data.data;
+            renderGroupOptions();
+        }
+    } catch (error) {
+        console.error('Error loading groups:', error);
+    }
+}
+
+function renderGroupOptions() {
+    const select = document.getElementById('groupId');
+    select.innerHTML = '<option value="">-- Chọn nhóm --</option>';
+    
+    groups.forEach(group => {
+        const option = document.createElement('option');
+        option.value = group.id;
+        option.textContent = group.name;
+        select.appendChild(option);
+    });
+}
+
+function renderAttributesTable() {
+    const tbody = document.getElementById('attributesTable');
+    tbody.innerHTML = '';
+    
+    if (attributes.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-4 text-muted">
+                    <i class="fas fa-inbox fa-2x mb-2"></i><br>
+                    Chưa có thuộc tính nào
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    attributes.forEach(attr => {
+        const row = document.createElement('tr');
+        
+        // Field type labels
+        const fieldTypeLabels = {
+            'char': 'Văn bản',
+            'float': 'Số thập phân', 
+            'integer': 'Số nguyên',
+            'boolean': 'Đúng/Sai',
+            'date': 'Ngày',
+            'selection': 'Lựa chọn'
+        };
+        
+        // Find group name
+        const group = groups.find(g => g.id === attr.group_id);
+        const groupName = group ? group.name : '';
+        
+        // Format create date
+        const createDate = attr.create_date ? new Date(attr.create_date).toLocaleDateString('vi-VN') : '';
+        
+        row.innerHTML = `
+            <td><span class="badge bg-secondary">${attr.id}</span></td>
+            <td>
+                <div class="fw-bold">${attr.name}</div>
+                ${attr.display_name ? `<small class="text-muted">${attr.display_name}</small>` : ''}
+            </td>
+            <td>
+                <span class="badge bg-primary">${fieldTypeLabels[attr.field_type] || attr.field_type}</span>
+                ${attr.unit ? `<br><small class="text-muted">${attr.unit}</small>` : ''}
+            </td>
+            <td>${groupName ? `<span class="badge bg-info">${groupName}</span>` : ''}</td>
+            <td>
+                ${attr.active ? '<span class="badge bg-success">Hoạt động</span>' : '<span class="badge bg-secondary">Tạm dừng</span>'}
+                ${attr.required ? '<br><span class="badge bg-warning text-dark">Bắt buộc</span>' : ''}
+            </td>
+            <td><small class="text-muted">${createDate}</small></td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" onclick="editAttribute(${attr.id})" title="Sửa">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteAttribute(${attr.id})" title="Xóa">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+}
+
+function showCreateForm() {
+    isEditing = false;
+    document.getElementById('formTitle').textContent = 'Tạo Thuộc tính Mới';
+    document.getElementById('submitBtnText').textContent = 'Tạo';
+    document.getElementById('attributeFormElement').reset();
+    document.getElementById('attributeId').value = '';
+    document.getElementById('attributeForm').style.display = 'block';
+    document.getElementById('name').focus();
+}
+
+function editAttribute(id) {
+    isEditing = true;
+    const attr = attributes.find(a => a.id === id);
+    if (!attr) return;
+    
+    document.getElementById('formTitle').textContent = 'Sửa Thuộc tính';
+    document.getElementById('submitBtnText').textContent = 'Cập nhật';
+    
+    // Fill form
+    document.getElementById('attributeId').value = attr.id;
+    document.getElementById('name').value = attr.name || '';
+    document.getElementById('displayName').value = attr.display_name || '';
+    document.getElementById('shortName').value = attr.short_name || '';
+    document.getElementById('fieldType').value = attr.field_type || '';
+    document.getElementById('groupId').value = attr.group_id || '';
+    document.getElementById('unit').value = attr.unit || '';
+    document.getElementById('category').value = attr.category || '';
+    document.getElementById('defaultValue').value = attr.default_value || '';
+    document.getElementById('validationRegex').value = attr.validation_regex || '';
+    document.getElementById('selectionOptions').value = attr.selection_options || '';
+    document.getElementById('description').value = attr.description || '';
+    document.getElementById('required').checked = attr.required || false;
+    document.getElementById('editable').checked = attr.editable !== false;
+    document.getElementById('active').checked = attr.active !== false;
+    
+    // Show/hide selection options
+    const selectionGroup = document.getElementById('selectionOptionsGroup');
+    if (attr.field_type === 'selection') {
+        selectionGroup.style.display = 'block';
+    } else {
+        selectionGroup.style.display = 'none';
+    }
+    
+    document.getElementById('attributeForm').style.display = 'block';
+    document.getElementById('name').focus();
+}
+
+function hideForm() {
+    document.getElementById('attributeForm').style.display = 'none';
+}
+
+async function submitAttribute(e) {
+    e.preventDefault();
+    
+    try {
+        const formData = {
+            name: document.getElementById('name').value,
+            display_name: document.getElementById('displayName').value || null,
+            short_name: document.getElementById('shortName').value || null,
+            field_type: document.getElementById('fieldType').value,
+            group_id: document.getElementById('groupId').value ? parseInt(document.getElementById('groupId').value) : null,
+            unit: document.getElementById('unit').value || null,
+            category: document.getElementById('category').value || null,
+            default_value: document.getElementById('defaultValue').value || null,
+            validation_regex: document.getElementById('validationRegex').value || null,
+            selection_options: document.getElementById('selectionOptions').value || null,
+            description: document.getElementById('description').value || null,
+            required: document.getElementById('required').checked,
+            editable: document.getElementById('editable').checked,
+            active: document.getElementById('active').checked
+        };
+        
+        const attributeId = document.getElementById('attributeId').value;
+        let url = '/api/gold-attributes';
+        let method = 'POST';
+        
+        if (isEditing && attributeId) {
+            url += `/${attributeId}`;
+            method = 'PUT';
+        }
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showMessage(data.message || (isEditing ? 'Cập nhật thành công!' : 'Tạo thành công!'), 'success');
+            hideForm();
+            loadAttributes();
+        } else {
+            showMessage('Lỗi: ' + data.error, 'danger');
+        }
+    } catch (error) {
+        showMessage('Lỗi kết nối: ' + error.message, 'danger');
+    }
+}
+
+async function deleteAttribute(id) {
+    if (!confirm('Bạn có chắc chắn muốn xóa thuộc tính này?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/gold-attributes/${id}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showMessage(data.message || 'Xóa thành công!', 'success');
+            loadAttributes();
+        } else {
+            showMessage('Lỗi khi xóa: ' + data.error, 'danger');
+        }
+    } catch (error) {
+        showMessage('Lỗi kết nối: ' + error.message, 'danger');
+    }
+}
+
+function filterAttributes() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const tbody = document.getElementById('attributesTable');
+    const rows = tbody.querySelectorAll('tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        if (text.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function showMessage(message, type) {
+    const html = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    document.getElementById('statusMessages').innerHTML = html;
+    
+    // Auto dismiss after 5 seconds
+    setTimeout(() => {
+        const alert = document.querySelector('#statusMessages .alert');
+        if (alert) {
+            alert.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

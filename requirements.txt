@@ -1,9 +1,27 @@
+# BTMH Project Dependencies
+# Core FastAPI framework
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-requests==2.31.0
-python-dotenv==1.0.0
+
+# Template engine & static files
+jinja2==3.1.2
 python-multipart==0.0.6
-kafka-python==2.0.2
-redis==5.0.1
-asyncio-mqtt==0.13.0
+
+# Data validation
+pydantic==2.5.0
+
+# Configuration management
+python-dotenv==1.0.0
+
+# HTTP requests for Odoo XML-RPC
+requests==2.31.0
+
+# Real-time features
 sse-starlette==1.6.5
+kafka-python==2.0.2
+
+# Optional: Redis for caching (if needed)
+# redis==5.0.1
+
+# Optional: MQTT for additional messaging (if needed)  
+# asyncio-mqtt==0.13.0

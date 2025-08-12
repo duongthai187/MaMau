@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BTMH - Quản Lý Thuộc Tính Vàng</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .nav-pills .nav-link.active {
+            background-color: #ffc107;
+            color: #000;
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #ffc107;
+        }
+        .table th {
+            background-color: #fff3cd;
+        }
+        .btn-outline-warning:hover {
+            color: #000;
+        }
+        .loading {
+            display: none;
+        }
+        .error-message {
+            display: none;
+        }
+        .success-message {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-warning">
+        <div class="container">
+            <a class="navbar-brand text-dark fw-bold" href="/">
+                <i class="fas fa-gem me-2"></i>BTMH Gold Management
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link text-dark" href="/health" target="_blank">
+                    <i class="fas fa-heartbeat me-1"></i>Health Check
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Sidebar Navigation -->
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-list me-2"></i>Quản Lý</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="nav nav-pills flex-column" id="mainTabs">
+                            <li class="nav-item">
+                                <a class="nav-link active" data-bs-toggle="pill" href="#attribute-groups">
+                                    <i class="fas fa-layer-group me-2"></i>Nhóm Thuộc Tính
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="pill" href="#gold-attributes">
+                                    <i class="fas fa-tags me-2"></i>Thuộc Tính Vàng
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="pill" href="#product-templates">
+                                    <i class="fas fa-cube me-2"></i>Mã Mẫu Sản Phẩm
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9">
+                <div class="tab-content">
+                    <!-- Attribute Groups Tab -->
+                    <div class="tab-pane fade show active" id="attribute-groups">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i>Nhóm Thuộc Tính</h5>
+                                <button class="btn btn-warning" onclick="showAttributeGroupModal()">
+                                    <i class="fas fa-plus me-1"></i>Thêm Nhóm
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <!-- Search & Filter -->
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                            <input type="text" class="form-control" id="groupSearch" placeholder="Tìm kiếm nhóm...">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 text-end">
+                                        <button class="btn btn-outline-warning" onclick="loadAttributeGroups()">
+                                            <i class="fas fa-sync-alt me-1"></i>Làm Mới
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Groups Table -->
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Tên Nhóm</th>
+                                                <th>Mã</th>
+                                                <th>Thứ Tự</th>
+                                                <th>Số Thuộc Tính</th>
+                                                <th>Ngày Tạo</th>
+                                                <th>Thao Tác</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="groupsTableBody">
+                                            <tr class="loading">
+                                                <td colspan="7" class="text-center">
+                                                    <i class="fas fa-spinner fa-spin me-2"></i>Đang tải...
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Pagination -->
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <div class="text-muted" id="groupsPagination">
+                                        <!-- Pagination info will be inserted here -->
+                                    </div>
+                                    <nav>
+                                        <ul class="pagination pagination-sm mb-0" id="groupsPaginationNav">
+                                            <!-- Pagination buttons will be inserted here -->
+                                        </ul>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gold Attributes Tab -->
+                    <div class="tab-pane fade" id="gold-attributes">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="fas fa-tags me-2"></i>Thuộc Tính Vàng</h5>
+                                <button class="btn btn-warning" onclick="showGoldAttributeModal()">
+                                    <i class="fas fa-plus me-1"></i>Thêm Thuộc Tính
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <!-- Search & Filter -->
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                            <input type="text" class="form-control" id="attrSearch" placeholder="Tìm kiếm thuộc tính...">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <select class="form-select" id="attrGroupFilter">
+                                            <option value="">Tất cả nhóm</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <select class="form-select" id="attrTypeFilter">
+                                            <option value="">Tất cả kiểu</option>
+                                            <option value="char">Văn bản</option>
+                                            <option value="float">Số thập phân</option>
+                                            <option value="integer">Số nguyên</option>
+                                            <option value="boolean">Đúng/Sai</option>
+                                            <option value="date">Ngày</option>
+                                            <option value="selection">Lựa chọn</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2 text-end">
+                                        <button class="btn btn-outline-warning" onclick="loadGoldAttributes()">
+                                            <i class="fas fa-sync-alt me-1"></i>Làm Mới
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Attributes Table -->
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Tên</th>
+                                                <th>Tên Hiển Thị</th>
+                                                <th>Kiểu</th>
+                                                <th>Nhóm</th>
+                                                <th>Bắt Buộc</th>
+                                                <th>Trạng Thái</th>
+                                                <th>Thao Tác</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="attributesTableBody">
+                                            <tr class="loading">
+                                                <td colspan="8" class="text-center">
+                                                    <i class="fas fa-spinner fa-spin me-2"></i>Đang tải...
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Pagination -->
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <div class="text-muted" id="attributesPagination">
+                                        <!-- Pagination info will be inserted here -->
+                                    </div>
+                                    <nav>
+                                        <ul class="pagination pagination-sm mb-0" id="attributesPaginationNav">
+                                            <!-- Pagination buttons will be inserted here -->
+                                        </ul>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Product Templates Tab -->
+                    <div class="tab-pane fade" id="product-templates">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="fas fa-cube me-2"></i>Mã Mẫu Sản Phẩm</h5>
+                                <button class="btn btn-warning" onclick="showProductTemplateModal()">
+                                    <i class="fas fa-plus me-1"></i>Thêm Mã Mẫu
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <!-- Search & Filter -->
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                            <input type="text" class="form-control" id="templateSearch" placeholder="Tìm kiếm mã mẫu...">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <select class="form-select" id="templateCategoryFilter">
+                                            <option value="">Tất cả danh mục</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3 text-end">
+                                        <button class="btn btn-outline-warning" onclick="loadProductTemplates()">
+                                            <i class="fas fa-sync-alt me-1"></i>Làm Mới
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Dynamic Attribute Filters -->
+                                <div id="attributeFiltersContainer" class="mb-3">
+                                    <!-- Dynamic filters will be rendered here -->
+                                </div>
+
+                                <!-- Templates Table -->
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Tên</th>
+                                                <th>Mã Sản Phẩm</th>
+                                                <th>Danh Mục</th>
+                                                <th>Giá Bán</th>
+                                                <th>Giá Vốn</th>
+                                                <th>Ngày Tạo</th>
+                                                <th>Thao Tác</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="templatesTableBody">
+                                            <tr class="loading">
+                                                <td colspan="8" class="text-center">
+                                                    <i class="fas fa-spinner fa-spin me-2"></i>Đang tải...
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Pagination -->
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <div class="text-muted" id="templatesPagination">
+                                        <!-- Pagination info will be inserted here -->
+                                    </div>
+                                    <nav>
+                                        <ul class="pagination pagination-sm mb-0" id="templatesPaginationNav">
+                                            <!-- Pagination buttons will be inserted here -->
+                                        </ul>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attribute Group Modal -->
+    <div class="modal fade" id="attributeGroupModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="attributeGroupModalTitle">Thêm Nhóm Thuộc Tính</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="attributeGroupForm">
+                        <input type="hidden" id="groupId">
+                        <div class="mb-3">
+                            <label for="groupName" class="form-label">Tên Nhóm <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="groupName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="groupCode" class="form-label">Mã Viết Tắt</label>
+                            <input type="text" class="form-control" id="groupCode">
+                        </div>
+                        <div class="mb-3">
+                            <label for="groupSequence" class="form-label">Thứ Tự</label>
+                            <input type="number" class="form-control" id="groupSequence" value="10">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-warning" onclick="saveAttributeGroup()">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gold Attribute Modal -->
+    <div class="modal fade" id="goldAttributeModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="goldAttributeModalTitle">Thêm Thuộc Tính Vàng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="goldAttributeForm">
+                        <input type="hidden" id="attrId">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="attrName" class="form-label">Tên Kỹ Thuật <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="attrName" required>
+                                    <div class="form-text">Tên dùng trong hệ thống (không dấu, không khoảng trắng)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="attrDisplayName" class="form-label">Tên Hiển Thị</label>
+                                    <input type="text" class="form-control" id="attrDisplayName">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="attrShortName" class="form-label">Tên Viết Tắt</label>
+                                    <input type="text" class="form-control" id="attrShortName">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="attrFieldType" class="form-label">Kiểu Dữ Liệu <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="attrFieldType" required>
+                                        <option value="">Chọn kiểu dữ liệu</option>
+                                        <option value="char">Văn bản</option>
+                                        <option value="float">Số thập phân</option>
+                                        <option value="integer">Số nguyên</option>
+                                        <option value="boolean">Đúng/Sai</option>
+                                        <option value="date">Ngày</option>
+                                        <option value="selection">Lựa chọn</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="attrGroup" class="form-label">Nhóm Thuộc Tính</label>
+                                    <select class="form-select" id="attrGroup">
+                                        <option value="">Không có nhóm</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="attrCategory" class="form-label">Phân Loại</label>
+                                    <select class="form-select" id="attrCategory">
+                                        <option value="technical">Kỹ thuật</option>
+                                        <option value="display">Hiển thị</option>
+                                        <option value="document">Tài liệu</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="attrUnit" class="form-label">Đơn Vị Tính</label>
+                                    <input type="text" class="form-control" id="attrUnit">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="attrDefaultValue" class="form-label">Giá Trị Mặc Định</label>
+                                    <input type="text" class="form-control" id="attrDefaultValue">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="attrDescription" class="form-label">Mô Tả</label>
+                            <textarea class="form-control" id="attrDescription" rows="3"></textarea>
+                        </div>
+
+                        <div class="mb-3" id="selectionOptionsContainer" style="display: none;">
+                            <label for="attrSelectionOptions" class="form-label">Tùy Chọn Lựa Chọn</label>
+                            <textarea class="form-control" id="attrSelectionOptions" rows="3" placeholder="Nhập các tùy chọn, mỗi dòng một tùy chọn"></textarea>
+                            <div class="form-text">Chỉ hiển thị khi kiểu dữ liệu là "Lựa chọn"</div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="attrRequired">
+                                    <label class="form-check-label" for="attrRequired">Bắt buộc</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="attrEditable" checked>
+                                    <label class="form-check-label" for="attrEditable">Cho phép chỉnh sửa</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="attrActive" checked>
+                                    <label class="form-check-label" for="attrActive">Đang sử dụng</label>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-warning" onclick="saveGoldAttribute()">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Template Modal -->
+    <div class="modal fade" id="productTemplateModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="productTemplateModalTitle">Thêm Mã Mẫu Sản Phẩm</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="productTemplateForm">
+                        <input type="hidden" id="templateId">
+                        <!-- Basic Info -->
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="templateName" class="form-label">Tên Sản Phẩm <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="templateName" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="templateCode" class="form-label">Mã Sản Phẩm</label>
+                                    <input type="text" class="form-control" id="templateCode">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="templateCategory" class="form-label">Danh Mục</label>
+                                    <select class="form-select" id="templateCategory">
+                                        <option value="">Chọn danh mục</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="templateType" class="form-label">Loại Sản Phẩm</label>
+                                    <select class="form-select" id="templateType">
+                                        <option value="product">Sản phẩm tồn kho</option>
+                                        <option value="consu">Sản phẩm tiêu hao</option>
+                                        <option value="service">Dịch vụ</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="templateListPrice" class="form-label">Giá Bán</label>
+                                    <input type="number" class="form-control" id="templateListPrice" step="0.01" min="0">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="templateStandardPrice" class="form-label">Giá Vốn</label>
+                                    <input type="number" class="form-control" id="templateStandardPrice" step="0.01" min="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="templateDescription" class="form-label">Mô Tả</label>
+                            <textarea class="form-control" id="templateDescription" rows="3"></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="templateSaleOk" checked>
+                                    <label class="form-check-label" for="templateSaleOk">Có thể bán</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="templatePurchaseOk" checked>
+                                    <label class="form-check-label" for="templatePurchaseOk">Có thể mua</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Gold Attributes Section -->
+                        <h6><i class="fas fa-tags me-2"></i>Thuộc Tính Vàng</h6>
+                        <div id="goldAttributesContainer">
+                            <!-- Gold attributes will be loaded here -->
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-warning" onclick="saveProductTemplate()">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Main JavaScript -->
+    <script src="/static/js/gold_management.js"></script>
+</body>
+</html>

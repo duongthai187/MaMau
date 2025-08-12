@@ -1,0 +1,3 @@
+"""
+BTMH Project - Core Package
+"""
